@@ -2,13 +2,15 @@
 'use client';
 
 import { useState } from 'react';
-import { FilePlus, Settings2, ShieldCheck, TrendingUp, Building, GitCompareArrows, ChevronLeft } from 'lucide-react';
+import { FilePlus, Settings2, ShieldCheck, TrendingUp, Building, GitCompareArrows, ChevronLeft, PlusCircle } from 'lucide-react';
 import { DelegationCategoryCard } from '@/components/delegation/delegation-category-card';
 import { DelegationItemButton } from '@/components/delegation/delegation-item-button';
 import type { DelegationCategory, DelegationType } from '@/types';
-import { DelegationSubCategories } from '@/types';
+import { DelegationSubCategories, getCategoryForType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DelegationModal } from '@/components/delegation/delegation-modal';
+import { useToast } from '@/hooks/use-toast';
 
 const categoryIcons = {
   Souscription: <FilePlus className="h-8 w-8" />,
@@ -23,7 +25,6 @@ const itemIcons: Record<DelegationType, React.ReactNode> = {
   "Arbitrage": <GitCompareArrows className="h-6 w-6" />,
 };
 
-// Map of DelegationType to Tally Form Embed URL
 const TALLY_URLS: Partial<Record<DelegationType, string>> = {
   "PER": "https://tally.so/embed/mB2Wg5?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
   "Assurance Vie": "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
@@ -32,10 +33,13 @@ const TALLY_URLS: Partial<Record<DelegationType, string>> = {
   "Arbitrage": "https://tally.so/embed/mOoN7R?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
 };
 
-
 export default function DeleguerPage() {
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
   const [currentTallyEmbedUrl, setCurrentTallyEmbedUrl] = useState<string | null>(null);
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDelegationTypeForModal, setSelectedDelegationTypeForModal] = useState<DelegationType | null>(null);
+  const { toast } = useToast();
 
   const handleItemClick = (itemType: DelegationType) => {
     setCurrentTallyDelegationType(itemType);
@@ -44,7 +48,6 @@ export default function DeleguerPage() {
     if (embedUrl) {
       setCurrentTallyEmbedUrl(embedUrl);
     } else {
-      // Placeholder for types not yet in TALLY_URLS
       const placeholderHtml = `
         <body style='font-family:sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;height:80vh;margin:0;padding:20px;text-align:center;color:%234b5563;background-color:%23f9fafb;border-radius:8px;'>
           <h2 style='color:%231f2937;margin-bottom:8px;'>Formulaire pour ${itemType}</h2>
@@ -55,6 +58,11 @@ export default function DeleguerPage() {
         </body>`;
       setCurrentTallyEmbedUrl(`data:text/html,${encodeURIComponent(placeholderHtml)}`);
     }
+  };
+
+  const handleOpenModalForTally = (type: DelegationType) => {
+    setSelectedDelegationTypeForModal(type);
+    setIsModalOpen(true);
   };
 
   if (currentTallyDelegationType && currentTallyEmbedUrl) {
@@ -78,22 +86,48 @@ export default function DeleguerPage() {
             </CardTitle>
             <CardDescription>
               {TALLY_URLS[currentTallyDelegationType]
-                ? "Veuillez remplir le formulaire ci-dessous pour initier la délégation."
+                ? "Veuillez remplir le formulaire Tally ci-dessous. Une fois soumis, vous pouvez enregistrer manuellement les détails clés."
                 : "Configuration du formulaire Tally pour ce type d'opération requise."}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             <iframe
               src={currentTallyEmbedUrl}
               width="100%"
-              style={{ minHeight: '750px', border: 'none', borderRadius: '0 0 0.5rem 0.5rem' }}
+              style={{ minHeight: '750px', border: '1px solid hsl(var(--border))', borderRadius: '0.5rem' }}
               title={`Formulaire de délégation: ${currentTallyDelegationType}`}
               allowFullScreen
             >
               Chargement du formulaire...
             </iframe>
+             <Button
+              onClick={() => handleOpenModalForTally(currentTallyDelegationType!)}
+              className="w-full sm:w-auto"
+              variant="outline"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Manually Record this Operation in &quot;Mes Opérations&quot;
+            </Button>
           </CardContent>
         </Card>
+
+        {selectedDelegationTypeForModal && (
+          <DelegationModal
+            isOpen={isModalOpen}
+            onOpenChange={(open) => {
+              setIsModalOpen(open);
+              if (!open) setSelectedDelegationTypeForModal(null);
+            }}
+            delegationType={selectedDelegationTypeForModal}
+            delegationCategory={getCategoryForType(selectedDelegationTypeForModal)!}
+            onSuccess={() => {
+              toast({
+                title: "Operation Recorded",
+                description: `The operation ${selectedDelegationTypeForModal} has been recorded. You can view it in "Mes Opérations".`,
+              });
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -128,6 +162,23 @@ export default function DeleguerPage() {
           </DelegationCategoryCard>
         ))}
       </div>
+      {selectedDelegationTypeForModal && (
+          <DelegationModal
+            isOpen={isModalOpen}
+            onOpenChange={(open) => {
+              setIsModalOpen(open);
+              if (!open) setSelectedDelegationTypeForModal(null);
+            }}
+            delegationType={selectedDelegationTypeForModal}
+            delegationCategory={getCategoryForType(selectedDelegationTypeForModal)!}
+            onSuccess={() => {
+               toast({
+                title: "Operation Recorded",
+                description: `The operation for ${selectedDelegationTypeForModal} has been recorded. You can view it in "Mes Opérations".`,
+              });
+            }}
+          />
+        )}
     </div>
   );
 }
