@@ -72,3 +72,4 @@ export function getCategoryForType(type: DelegationType): DelegationCategory | u
   }
   return undefined;
 }
+

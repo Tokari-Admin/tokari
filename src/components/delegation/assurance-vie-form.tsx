@@ -38,8 +38,8 @@ const formSchema = z.object({
     "Cristalliance Evoluvie - APICIL",
     "Fipavie Neo - ODDO"
   ], { required_error: "Nom du contrat est requis." }),
-  initialPaymentAmount: z.coerce.number().positive({ message: "Le versement initial doit être un nombre positif." }).optional().or(z.literal(0)).or(z.literal('')),
-  scheduledPaymentAmount: z.coerce.number().positive({ message: "Le versement programmé doit être un nombre positif." }).optional().or(z.literal(0)).or(z.literal('')),
+  initialPaymentAmount: z.union([z.literal(''), z.coerce.number().nonnegative({ message: "Le versement initial doit être un nombre positif ou zéro." })]).optional(),
+  scheduledPaymentAmount: z.union([z.literal(''), z.coerce.number().nonnegative({ message: "Le versement programmé doit être un nombre positif ou zéro." })]).optional(),
   scheduledPaymentDebitDay: z.enum(["05", "15", "25", "Autre"]).optional(),
   scheduledPaymentOtherDate: z.string().optional(),
   beneficiaryClause: z.enum([
@@ -62,12 +62,15 @@ const formSchema = z.object({
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Prénom du co-souscripteur est requis.", path: ['coSubscriberFirstName'] });
     }
   }
-  if (data.scheduledPaymentAmount && Number(data.scheduledPaymentAmount) > 0 && !data.scheduledPaymentDebitDay) {
+  
+  const scheduledPaymentAmount = Number(data.scheduledPaymentAmount);
+  if (scheduledPaymentAmount > 0 && !data.scheduledPaymentDebitDay) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date de prélèvement est requise si un versement programmé est saisi.", path: ['scheduledPaymentDebitDay'] });
   }
-  if (data.scheduledPaymentAmount && Number(data.scheduledPaymentAmount) > 0 && data.scheduledPaymentDebitDay === "Autre" && (!data.scheduledPaymentOtherDate || data.scheduledPaymentOtherDate.trim() === "")) {
+  if (scheduledPaymentAmount > 0 && data.scheduledPaymentDebitDay === "Autre" && (!data.scheduledPaymentOtherDate || data.scheduledPaymentOtherDate.trim() === "")) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez préciser l'autre date (JJ/MM).", path: ['scheduledPaymentOtherDate'] });
   }
+
   if (data.beneficiaryClause === "Clause bénéficiaire libre" && (!data.customBeneficiaryClause || data.customBeneficiaryClause.trim() === "")) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez détailler la clause bénéficiaire libre.", path: ['customBeneficiaryClause'] });
   }
@@ -140,10 +143,10 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
           coSubscriberFirstName: values.hasCoSubscriber ? values.coSubscriberFirstName : undefined,
           coSubscriberLastName: values.hasCoSubscriber ? values.coSubscriberLastName : undefined,
           contractName: values.contractName,
-          initialPaymentAmount: values.initialPaymentAmount && values.initialPaymentAmount !== '' ? Number(values.initialPaymentAmount) : undefined,
-          scheduledPaymentAmount: values.scheduledPaymentAmount && values.scheduledPaymentAmount !== '' ? Number(values.scheduledPaymentAmount) : undefined,
-          scheduledPaymentDebitDay: (values.scheduledPaymentAmount && Number(values.scheduledPaymentAmount) > 0) ? values.scheduledPaymentDebitDay : undefined,
-          scheduledPaymentOtherDate: (values.scheduledPaymentAmount && Number(values.scheduledPaymentAmount) > 0 && values.scheduledPaymentDebitDay === "Autre") ? values.scheduledPaymentOtherDate : undefined,
+          initialPaymentAmount: values.initialPaymentAmount !== '' ? Number(values.initialPaymentAmount) : undefined,
+          scheduledPaymentAmount: values.scheduledPaymentAmount !== '' ? Number(values.scheduledPaymentAmount) : undefined,
+          scheduledPaymentDebitDay: (values.scheduledPaymentAmount !== '' && Number(values.scheduledPaymentAmount) > 0) ? values.scheduledPaymentDebitDay : undefined,
+          scheduledPaymentOtherDate: (values.scheduledPaymentAmount !== '' && Number(values.scheduledPaymentAmount) > 0 && values.scheduledPaymentDebitDay === "Autre") ? values.scheduledPaymentOtherDate : undefined,
           beneficiaryClause: values.beneficiaryClause,
           customBeneficiaryClause: values.beneficiaryClause === "Clause bénéficiaire libre" ? values.customBeneficiaryClause : undefined,
           assetAllocationChoice: values.assetAllocationChoice,
@@ -284,50 +287,52 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 </FormItem>
               )}
             />
-            {(numericScheduledPaymentAmount > 0) && (
-              <FormField
-                control={form.control}
-                name="scheduledPaymentDebitDay"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date de prélèvement du versement programmé *</FormLabel>
-                    <FormControl>
-                      <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl><RadioGroupItem value="05" /></FormControl>
-                          <FormLabel className="font-normal">Le 05 du mois</FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl><RadioGroupItem value="15" /></FormControl>
-                          <FormLabel className="font-normal">Le 15 du mois</FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl><RadioGroupItem value="25" /></FormControl>
-                          <FormLabel className="font-normal">Le 25 du mois</FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl><RadioGroupItem value="Autre" /></FormControl>
-                          <FormLabel className="font-normal">Choisir une autre date</FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+            {numericScheduledPaymentAmount > 0 && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="scheduledPaymentDebitDay"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date de prélèvement du versement programmé *</FormLabel>
+                      <FormControl>
+                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl><RadioGroupItem value="05" /></FormControl>
+                            <FormLabel className="font-normal">Le 05 du mois</FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl><RadioGroupItem value="15" /></FormControl>
+                            <FormLabel className="font-normal">Le 15 du mois</FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl><RadioGroupItem value="25" /></FormControl>
+                            <FormLabel className="font-normal">Le 25 du mois</FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl><RadioGroupItem value="Autre" /></FormControl>
+                            <FormLabel className="font-normal">Choisir une autre date</FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {watchScheduledPaymentDebitDay === "Autre" && (
+                  <FormField
+                    control={form.control}
+                    name="scheduledPaymentOtherDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Autre date de prélèvement (JJ/MM) *</FormLabel>
+                        <FormControl><Input placeholder="ex: 10/03" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              />
-            )}
-            {watchScheduledPaymentDebitDay === "Autre" && (numericScheduledPaymentAmount > 0) && (
-              <FormField
-                control={form.control}
-                name="scheduledPaymentOtherDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Autre date de prélèvement (JJ/MM) *</FormLabel>
-                    <FormControl><Input placeholder="ex: 10/03" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              </>
             )}
             <FormField
               control={form.control}
@@ -428,3 +433,4 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     </Card>
   );
 }
+
