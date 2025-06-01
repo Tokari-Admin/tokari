@@ -97,8 +97,8 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
       coSubscriberLastName: '',
       coSubscriberFirstName: '',
       contractName: undefined,
-      initialPaymentAmount: '', // Changed from undefined
-      scheduledPaymentAmount: '', // Changed from undefined
+      initialPaymentAmount: '',
+      scheduledPaymentAmount: '',
       scheduledPaymentDebitDay: undefined,
       scheduledPaymentOtherDate: '',
       beneficiaryClause: undefined,
@@ -110,10 +110,12 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
   });
 
   const watchHasCoSubscriber = form.watch('hasCoSubscriber');
-  // const watchScheduledPaymentAmount = form.watch('scheduledPaymentAmount'); // Can be removed if form.getValues is preferred
+  const watchScheduledPaymentAmountValue = form.watch('scheduledPaymentAmount');
   const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
   const watchBeneficiaryClause = form.watch('beneficiaryClause');
   const watchAssetAllocationChoice = form.watch('assetAllocationChoice');
+
+  const numericScheduledPaymentAmount = Number(watchScheduledPaymentAmountValue);
 
   async function onSubmit(values: AssuranceVieFormValues) {
     if (!user) {
@@ -168,7 +170,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Nouvelle Souscription: Assurance Vie</CardTitle>
         <CardDescription>
-          Remplissez les détails ci-dessous pour la nouvelle souscription d&apos;assurance vie. Les champs marqués d'un * sont requis.
+          Remplissez les détails ci-dessous pour la nouvelle souscription d&apos;assurance vie. Les champs marqués d&apos;un * sont requis.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -282,7 +284,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 </FormItem>
               )}
             />
-            {( Number(form.getValues('scheduledPaymentAmount')) > 0) && (
+            {(numericScheduledPaymentAmount > 0) && (
               <FormField
                 control={form.control}
                 name="scheduledPaymentDebitDay"
@@ -314,7 +316,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 )}
               />
             )}
-            {watchScheduledPaymentDebitDay === "Autre" && (Number(form.getValues('scheduledPaymentAmount')) > 0) && (
+            {watchScheduledPaymentDebitDay === "Autre" && (numericScheduledPaymentAmount > 0) && (
               <FormField
                 control={form.control}
                 name="scheduledPaymentOtherDate"
@@ -426,4 +428,3 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     </Card>
   );
 }
-
