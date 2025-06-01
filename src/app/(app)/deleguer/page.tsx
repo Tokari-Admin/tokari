@@ -9,7 +9,7 @@ import type { DelegationCategory, DelegationType } from '@/types';
 import { DelegationSubCategories, getCategoryForType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/hooks/use-auth'; // Import useAuth
+import { useAuth } from '@/hooks/use-auth'; 
 
 const categoryIcons = {
   Souscription: <FilePlus className="h-8 w-8" />,
@@ -35,7 +35,7 @@ const TALLY_URLS: Partial<Record<DelegationType, string>> = {
 const TALLY_DEFAULT_PARAMS = "alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
 
 export default function DeleguerPage() {
-  const { user } = useAuth(); // Get the authenticated user
+  const { user } = useAuth(); 
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
   const [currentTallyEmbedUrl, setCurrentTallyEmbedUrl] = useState<string | null>(null);
 
@@ -43,17 +43,14 @@ export default function DeleguerPage() {
     setCurrentTallyDelegationType(itemType);
     const baseEmbedUrl = TALLY_URLS[itemType];
 
-    if (baseEmbedUrl && user) { // Ensure user is available
-      // Append userId and delegationType to the Tally URL
+    if (baseEmbedUrl && user) { 
       const queryParams = new URLSearchParams(TALLY_DEFAULT_PARAMS);
       queryParams.append('userId', user.uid);
       queryParams.append('delegationType', itemType);
       setCurrentTallyEmbedUrl(`${baseEmbedUrl}?${queryParams.toString()}`);
     } else if (baseEmbedUrl) {
-       // Fallback if user is not available (should not happen in protected route)
-       // Or if you want a version that works without user for some reason
        const queryParams = new URLSearchParams(TALLY_DEFAULT_PARAMS);
-       queryParams.append('delegationType', itemType); // Still pass type
+       queryParams.append('delegationType', itemType); 
        setCurrentTallyEmbedUrl(`${baseEmbedUrl}?${queryParams.toString()}`);
        console.warn("User not available for Tally URL, userId not included.");
     } else {
@@ -135,6 +132,7 @@ export default function DeleguerPage() {
                 itemName={item}
                 icon={itemIcons[item as DelegationType]}
                 onClick={() => handleItemClick(item as DelegationType)}
+                category={category} 
               />
             ))}
           </DelegationCategoryCard>
