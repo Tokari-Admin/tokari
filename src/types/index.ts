@@ -24,19 +24,19 @@ export interface DelegationItem {
     contractName?: "Cristalliance Avenir - VIE PLUS" | "Cristalliance Evoluvie - APICIL" | "Fipavie Neo - ODDO";
     initialPaymentAmount?: number;
     scheduledPaymentAmount?: number;
-    scheduledPaymentDebitDay?: "05" | "15" | "25" | "Specific"; // New: "Specific" for date picker
-    scheduledPaymentSpecificDate?: Date; // New: To store the date from picker
+    scheduledPaymentDebitDay?: "05" | "15" | "25" | "Specific";
+    scheduledPaymentSpecificDate?: Date; 
     beneficiaryClause?: "Clause bénéficiaire générale" | "Clause bénéficiaire libre";
-    customBeneficiaryClause?: string; // For "Clause bénéficiaire libre"
+    customBeneficiaryClause?: string; 
     assetAllocationChoice?: "Utiliser l'allocation d'actifs que j'ai déjà importé" | "Importer une autre allocation d'actifs";
-    customAssetAllocation?: string; // Description or link for "Importer une autre allocation d'actifs"
+    customAssetAllocation?: string; 
     // Original generic fields - can be reused or deprecated based on specific form needs
-    amount?: number; // Could be initialPaymentAmount
+    amount?: number; 
     policyNumber?: string;
     documentUrl?: string;
-    productType?: string; // Potentially replaced by contractName
-    riskProfile?: string; // Potentially captured in notes or a dedicated field if needed
-    [key: string]: any; // For other dynamic fields
+    productType?: string; 
+    riskProfile?: string; 
+    [key: string]: any; 
   };
 }
 
