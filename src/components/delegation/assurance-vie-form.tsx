@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -15,13 +16,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
@@ -32,11 +28,48 @@ import { useToast } from '@/hooks/use-toast';
 import type { DelegationCategory, DelegationItem, DelegationStatus } from '@/types';
 
 const formSchema = z.object({
-  clientName: z.string().min(2, { message: "Client name must be at least 2 characters." }),
-  amount: z.coerce.number().positive({ message: "Investment amount must be positive." }),
-  productType: z.string().optional(),
-  riskProfile: z.enum(["Prudent", "Equilibré", "Dynamique", "Autre"]).optional(),
-  notes: z.string().optional(),
+  subscriberLastName: z.string().min(1, { message: "Nom du souscripteur est requis." }),
+  subscriberFirstName: z.string().min(1, { message: "Prénom du souscripteur est requis." }),
+  hasCoSubscriber: z.boolean().optional().default(false),
+  coSubscriberLastName: z.string().optional(),
+  coSubscriberFirstName: z.string().optional(),
+  contractName: z.enum([
+    "Cristalliance Avenir - VIE PLUS",
+    "Cristalliance Evoluvie - APICIL",
+    "Fipavie Neo - ODDO"
+  ], { required_error: "Nom du contrat est requis." }),
+  initialPaymentAmount: z.coerce.number().positive({ message: "Le versement initial doit être un nombre positif." }).optional().or(z.literal(0)).or(z.literal('')),
+  scheduledPaymentAmount: z.coerce.number().positive({ message: "Le versement programmé doit être un nombre positif." }).optional().or(z.literal(0)).or(z.literal('')),
+  scheduledPaymentDebitDay: z.enum(["05", "15", "25", "Autre"], { required_error: "Date de prélèvement est requise si un versement programmé est saisi." }).optional(),
+  scheduledPaymentOtherDate: z.string().optional(),
+  beneficiaryClause: z.enum([
+    "Clause bénéficiaire générale",
+    "Clause bénéficiaire libre"
+  ], { required_error: "Clause bénéficiaire est requise." }),
+  assetAllocationChoice: z.enum([
+    "Utiliser l'allocation d'actifs que j'ai déjà importé",
+    "Importer une autre allocation d'actifs"
+  ], { required_error: "Allocation d'actifs est requise." }),
+  customAssetAllocation: z.string().optional(),
+  notes: z.string().optional(), // Corresponds to "Commentaire"
+}).superRefine((data, ctx) => {
+  if (data.hasCoSubscriber) {
+    if (!data.coSubscriberLastName) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Nom du co-souscripteur est requis.", path: ['coSubscriberLastName'] });
+    }
+    if (!data.coSubscriberFirstName) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Prénom du co-souscripteur est requis.", path: ['coSubscriberFirstName'] });
+    }
+  }
+  if (data.scheduledPaymentAmount && data.scheduledPaymentAmount > 0 && !data.scheduledPaymentDebitDay) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date de prélèvement est requise si un versement programmé est saisi.", path: ['scheduledPaymentDebitDay'] });
+  }
+  if (data.scheduledPaymentDebitDay === "Autre" && !data.scheduledPaymentOtherDate) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez préciser l'autre date.", path: ['scheduledPaymentOtherDate'] });
+  }
+  if (data.assetAllocationChoice === "Importer une autre allocation d'actifs" && !data.customAssetAllocation) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez décrire l'allocation d'actifs.", path: ['customAssetAllocation'] });
+  }
 });
 
 type AssuranceVieFormValues = z.infer<typeof formSchema>;
@@ -54,13 +87,23 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
   const form = useForm<AssuranceVieFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      clientName: '',
-      amount: undefined,
-      productType: '',
-      riskProfile: undefined,
+      subscriberLastName: '',
+      subscriberFirstName: '',
+      hasCoSubscriber: false,
+      coSubscriberLastName: '',
+      coSubscriberFirstName: '',
+      initialPaymentAmount: undefined,
+      scheduledPaymentAmount: undefined,
+      scheduledPaymentOtherDate: '',
+      customAssetAllocation: '',
       notes: '',
     },
   });
+
+  const watchHasCoSubscriber = form.watch('hasCoSubscriber');
+  const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
+  const watchAssetAllocationChoice = form.watch('assetAllocationChoice');
+  const watchScheduledPaymentAmount = form.watch('scheduledPaymentAmount');
 
   async function onSubmit(values: AssuranceVieFormValues) {
     if (!user) {
@@ -70,29 +113,40 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     setIsLoading(true);
 
     try {
+      const clientFullName = `${values.subscriberFirstName} ${values.subscriberLastName}`;
       const delegationData: Omit<DelegationItem, 'id' | 'createdDate'> & { createdDate: any; lastModifiedDate: any } = {
         userId: user.uid,
         type: "Assurance Vie",
         category: "Souscription" as DelegationCategory,
-        clientName: values.clientName,
+        clientName: clientFullName,
         status: 'En attente' as DelegationStatus,
         notes: values.notes,
         details: {
-          amount: values.amount,
-          productType: values.productType,
-          riskProfile: values.riskProfile,
+          subscriberFirstName: values.subscriberFirstName,
+          subscriberLastName: values.subscriberLastName,
+          hasCoSubscriber: values.hasCoSubscriber,
+          coSubscriberFirstName: values.hasCoSubscriber ? values.coSubscriberFirstName : undefined,
+          coSubscriberLastName: values.hasCoSubscriber ? values.coSubscriberLastName : undefined,
+          contractName: values.contractName,
+          initialPaymentAmount: values.initialPaymentAmount ? Number(values.initialPaymentAmount) : undefined,
+          scheduledPaymentAmount: values.scheduledPaymentAmount ? Number(values.scheduledPaymentAmount) : undefined,
+          scheduledPaymentDebitDay: (values.scheduledPaymentAmount && values.scheduledPaymentAmount > 0) ? values.scheduledPaymentDebitDay : undefined,
+          scheduledPaymentOtherDate: (values.scheduledPaymentAmount && values.scheduledPaymentAmount > 0 && values.scheduledPaymentDebitDay === "Autre") ? values.scheduledPaymentOtherDate : undefined,
+          beneficiaryClause: values.beneficiaryClause,
+          assetAllocationChoice: values.assetAllocationChoice,
+          customAssetAllocation: values.assetAllocationChoice === "Importer une autre allocation d'actifs" ? values.customAssetAllocation : undefined,
         },
         createdDate: serverTimestamp(),
         lastModifiedDate: serverTimestamp(),
       };
 
       await addDoc(collection(db, 'delegations'), delegationData);
-      toast({ title: 'Delegation "Assurance Vie" Created', description: `Souscription for ${values.clientName} recorded successfully.` });
+      toast({ title: 'Délégation "Assurance Vie" Créée', description: `Souscription pour ${clientFullName} enregistrée.` });
       form.reset();
       onFormSubmitSuccess();
     } catch (error: any) {
       console.error("Error saving Assurance Vie delegation:", error);
-      toast({ variant: 'destructive', title: 'Save Failed', description: error.message || 'Could not save delegation.' });
+      toast({ variant: 'destructive', title: 'Échec de l\'enregistrement', description: error.message || 'Impossible d\'enregistrer la délégation.' });
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +157,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Nouvelle Souscription: Assurance Vie</CardTitle>
         <CardDescription>
-          Remplissez les détails ci-dessous pour la nouvelle souscription d&apos;assurance vie.
+          Remplissez les détails ci-dessous pour la nouvelle souscription d&apos;assurance vie. Les champs marqués d'un * sont requis.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -111,12 +165,85 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
           <CardContent className="space-y-6">
             <FormField
               control={form.control}
-              name="clientName"
+              name="subscriberLastName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nom Complet du Client</FormLabel>
+                  <FormLabel>Nom souscripteur *</FormLabel>
+                  <FormControl><Input placeholder="STARK" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="subscriberFirstName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Prénom souscripteur *</FormLabel>
+                  <FormControl><Input placeholder="Tony" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="hasCoSubscriber"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Ajouter un co-souscripteur</FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+            {watchHasCoSubscriber && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="coSubscriberLastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nom co-souscripteur *</FormLabel>
+                      <FormControl><Input placeholder="POTTS" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="coSubscriberFirstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prénom co-souscripteur *</FormLabel>
+                      <FormControl><Input placeholder="Pepper" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
+            <FormField
+              control={form.control}
+              name="contractName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nom du contrat *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Jean Dupont" {...field} />
+                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl><RadioGroupItem value="Cristalliance Avenir - VIE PLUS" /></FormControl>
+                        <FormLabel className="font-normal">Cristalliance Avenir - VIE PLUS</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl><RadioGroupItem value="Cristalliance Evoluvie - APICIL" /></FormControl>
+                        <FormLabel className="font-normal">Cristalliance Evoluvie - APICIL</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl><RadioGroupItem value="Fipavie Neo - ODDO" /></FormControl>
+                        <FormLabel className="font-normal">Fipavie Neo - ODDO</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -124,62 +251,135 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
             />
             <FormField
               control={form.control}
-              name="amount"
+              name="initialPaymentAmount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Montant de l&apos;Investissement (€)</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="10000" {...field} />
-                  </FormControl>
+                  <FormLabel>Versement initial (€)</FormLabel>
+                  <FormControl><Input type="number" placeholder="Entrer le montant du VI" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value))} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <FormField
               control={form.control}
-              name="productType"
+              name="scheduledPaymentAmount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Type de Produit/Support (Optionnel)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: Fonds Euro, ETF Monde..." {...field} />
-                  </FormControl>
+                  <FormLabel>Versement programmé (€)</FormLabel>
+                  <FormControl><Input type="number" placeholder="Entrer le montant du VP" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value))} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="riskProfile"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Profil de Risque (Optionnel)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+            {(watchScheduledPaymentAmount && Number(watchScheduledPaymentAmount) > 0) && (
+              <FormField
+                control={form.control}
+                name="scheduledPaymentDebitDay"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date de prélèvement du versement programmé *</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un profil" />
-                      </SelectTrigger>
+                      <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl><RadioGroupItem value="05" /></FormControl>
+                          <FormLabel className="font-normal">Le 05 du mois</FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl><RadioGroupItem value="15" /></FormControl>
+                          <FormLabel className="font-normal">Le 15 du mois</FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl><RadioGroupItem value="25" /></FormControl>
+                          <FormLabel className="font-normal">Le 25 du mois</FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl><RadioGroupItem value="Autre" /></FormControl>
+                          <FormLabel className="font-normal">Choisir une autre date</FormLabel>
+                        </FormItem>
+                      </RadioGroup>
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Prudent">Prudent</SelectItem>
-                      <SelectItem value="Equilibré">Equilibré</SelectItem>
-                      <SelectItem value="Dynamique">Dynamique</SelectItem>
-                      <SelectItem value="Autre">Autre</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            {watchScheduledPaymentDebitDay === "Autre" && (watchScheduledPaymentAmount && Number(watchScheduledPaymentAmount) > 0) && (
+              <FormField
+                control={form.control}
+                name="scheduledPaymentOtherDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Autre date de prélèvement (JJ/MM) *</FormLabel>
+                    <FormControl><Input placeholder="ex: 10/03" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            <FormField
+              control={form.control}
+              name="beneficiaryClause"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Clause bénéficiaire *</FormLabel>
+                  <FormControl>
+                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl><RadioGroupItem value="Clause bénéficiaire générale" /></FormControl>
+                        <FormLabel className="font-normal">Clause bénéficiaire générale</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl><RadioGroupItem value="Clause bénéficiaire libre" /></FormControl>
+                        <FormLabel className="font-normal">Clause bénéficiaire libre</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="assetAllocationChoice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Allocation d&apos;actifs (AT) *</FormLabel>
+                  <FormControl>
+                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl><RadioGroupItem value="Utiliser l'allocation d'actifs que j'ai déjà importé" /></FormControl>
+                        <FormLabel className="font-normal">Utiliser l&apos;allocation d&apos;actifs que j&apos;ai déjà importé</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl><RadioGroupItem value="Importer une autre allocation d'actifs" /></FormControl>
+                        <FormLabel className="font-normal">Importer une autre allocation d&apos;actifs</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {watchAssetAllocationChoice === "Importer une autre allocation d'actifs" && (
+              <FormField
+                control={form.control}
+                name="customAssetAllocation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Détail de l&apos;autre allocation d&apos;actifs *</FormLabel>
+                    <FormControl><Textarea placeholder="Décrivez l'allocation..." {...field} className="min-h-[100px]" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes (Optionnel)</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Informations complémentaires..." className="min-h-[100px]" {...field} />
-                  </FormControl>
+                  <FormLabel>Commentaire</FormLabel>
+                  <FormControl><Textarea placeholder="Partagez toutes les informations que vous jugerez utiles..." className="min-h-[100px]" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -191,7 +391,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Enregistrer la Souscription
+              Envoyer ma demande de délégation
             </Button>
           </CardFooter>
         </form>

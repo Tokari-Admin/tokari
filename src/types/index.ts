@@ -9,18 +9,32 @@ export interface DelegationItem {
   userId: string; // Wealth manager's Firebase UID
   type: string; // e.g., "Assurance Vie"
   category: DelegationCategory;
-  clientName: string;
+  clientName: string; // Primary subscriber's full name
   status: DelegationStatus;
   createdDate: number; // Store as Firestore Timestamp or epoch milliseconds
   lastModifiedDate?: number;
-  notes?: string;
+  notes?: string; // General comments from the form
   details?: {
-    amount?: number;
+    // Fields for native Assurance Vie form
+    subscriberFirstName?: string;
+    subscriberLastName?: string;
+    hasCoSubscriber?: boolean;
+    coSubscriberFirstName?: string;
+    coSubscriberLastName?: string;
+    contractName?: string; // e.g., "Cristalliance Avenir - VIE PLUS"
+    initialPaymentAmount?: number;
+    scheduledPaymentAmount?: number;
+    scheduledPaymentDebitDay?: '05' | '15' | '25' | 'Autre';
+    scheduledPaymentOtherDate?: string; // if scheduledPaymentDebitDay is 'Autre'
+    beneficiaryClause?: 'Clause bénéficiaire générale' | 'Clause bénéficiaire libre';
+    assetAllocationChoice?: 'Utiliser l\'allocation d\'actifs que j\'ai déjà importé' | 'Importer une autre allocation d\'actifs';
+    customAssetAllocation?: string; // if assetAllocationChoice is 'Importer une autre...'
+    // Original generic fields - can be reused or deprecated based on specific form needs
+    amount?: number; // Could be initialPaymentAmount
     policyNumber?: string;
     documentUrl?: string;
-    // Fields for native Assurance Vie form
-    productType?: string;
-    riskProfile?: string;
+    productType?: string; // Potentially replaced by contractName
+    riskProfile?: string; // Potentially captured in notes or a dedicated field if needed
     [key: string]: any; // For other dynamic fields
   };
 }
@@ -57,4 +71,3 @@ export function getCategoryForType(type: DelegationType): DelegationCategory | u
   }
   return undefined;
 }
-
