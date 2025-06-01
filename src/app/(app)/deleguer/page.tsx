@@ -1,15 +1,15 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FilePlus, Settings2, ShieldCheck, TrendingUp, Building, GitCompareArrows, ChevronLeft } from 'lucide-react';
 import { DelegationCategoryCard } from '@/components/delegation/delegation-category-card';
 import { DelegationItemButton } from '@/components/delegation/delegation-item-button';
 import type { DelegationCategory, DelegationType } from '@/types';
-import { DelegationSubCategories } from '@/types';
+import { DelegationSubCategories, getCategoryForType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-// import { useToast } from '@/hooks/use-toast'; // Kept in case of future use or for the placeholder
+import { useAuth } from '@/hooks/use-auth'; // Import useAuth
 
 const categoryIcons = {
   Souscription: <FilePlus className="h-8 w-8" />,
@@ -25,24 +25,37 @@ const itemIcons: Record<DelegationType, React.ReactNode> = {
 };
 
 const TALLY_URLS: Partial<Record<DelegationType, string>> = {
-  "PER": "https://tally.so/embed/mB2Wg5?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
-  "Assurance Vie": "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
-  "SCPI Nue Propriété": "https://tally.so/embed/wAjXpD?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
-  "SCPI Pleine Propriété": "https://tally.so/embed/nrkZ5R?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
-  "Arbitrage": "https://tally.so/embed/mOoN7R?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
+  "PER": "https://tally.so/embed/mB2Wg5",
+  "Assurance Vie": "https://tally.so/embed/mKa4yX",
+  "SCPI Nue Propriété": "https://tally.so/embed/wAjXpD",
+  "SCPI Pleine Propriété": "https://tally.so/embed/nrkZ5R",
+  "Arbitrage": "https://tally.so/embed/mOoN7R",
 };
 
+const TALLY_DEFAULT_PARAMS = "alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
+
 export default function DeleguerPage() {
+  const { user } = useAuth(); // Get the authenticated user
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
   const [currentTallyEmbedUrl, setCurrentTallyEmbedUrl] = useState<string | null>(null);
-  // const { toast } = useToast(); // Kept in case of future use
 
   const handleItemClick = (itemType: DelegationType) => {
     setCurrentTallyDelegationType(itemType);
-    const embedUrl = TALLY_URLS[itemType];
+    const baseEmbedUrl = TALLY_URLS[itemType];
 
-    if (embedUrl) {
-      setCurrentTallyEmbedUrl(embedUrl);
+    if (baseEmbedUrl && user) { // Ensure user is available
+      // Append userId and delegationType to the Tally URL
+      const queryParams = new URLSearchParams(TALLY_DEFAULT_PARAMS);
+      queryParams.append('userId', user.uid);
+      queryParams.append('delegationType', itemType);
+      setCurrentTallyEmbedUrl(`${baseEmbedUrl}?${queryParams.toString()}`);
+    } else if (baseEmbedUrl) {
+       // Fallback if user is not available (should not happen in protected route)
+       // Or if you want a version that works without user for some reason
+       const queryParams = new URLSearchParams(TALLY_DEFAULT_PARAMS);
+       queryParams.append('delegationType', itemType); // Still pass type
+       setCurrentTallyEmbedUrl(`${baseEmbedUrl}?${queryParams.toString()}`);
+       console.warn("User not available for Tally URL, userId not included.");
     } else {
       const placeholderHtml = `
         <body style='font-family:sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;height:80vh;margin:0;padding:20px;text-align:center;color:%234b5563;background-color:%23f9fafb;border-radius:8px;'>
@@ -77,7 +90,7 @@ export default function DeleguerPage() {
             </CardTitle>
             <CardDescription>
               {TALLY_URLS[currentTallyDelegationType]
-                ? "Veuillez remplir le formulaire Tally ci-dessous. Une fois la demande de délégation envoyée, celle-ci sera traitée."
+                ? "Veuillez remplir le formulaire Tally ci-dessous. Une fois la demande de délégation envoyée, celle-ci sera traitée et devrait apparaître dans 'Mes Opérations' si le webhook est correctement configuré."
                 : "Configuration du formulaire Tally pour ce type d'opération requise."}
             </CardDescription>
           </CardHeader>
@@ -91,7 +104,6 @@ export default function DeleguerPage() {
             >
               Chargement du formulaire...
             </iframe>
-            {/* Manual recording button and modal logic removed */}
           </CardContent>
         </Card>
       </div>
@@ -128,7 +140,6 @@ export default function DeleguerPage() {
           </DelegationCategoryCard>
         ))}
       </div>
-      {/* Modal instance removed */}
     </div>
   );
 }
