@@ -1,12 +1,14 @@
+
 'use client';
 
 import { useState } from 'react';
-import { FilePlus, Settings2, ShieldCheck, TrendingUp, Building, GitCompareArrows } from 'lucide-react';
+import { FilePlus, Settings2, ShieldCheck, TrendingUp, Building, GitCompareArrows, ChevronLeft } from 'lucide-react';
 import { DelegationCategoryCard } from '@/components/delegation/delegation-category-card';
 import { DelegationItemButton } from '@/components/delegation/delegation-item-button';
-import { DelegationModal } from '@/components/delegation/delegation-modal';
 import type { DelegationCategory, DelegationType } from '@/types';
 import { DelegationSubCategories } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const categoryIcons = {
   Souscription: <FilePlus className="h-8 w-8" />,
@@ -21,17 +23,46 @@ const itemIcons: Record<DelegationType, React.ReactNode> = {
   "Arbitrage": <GitCompareArrows className="h-6 w-6" />,
 };
 
+const TALLY_EMBED_URL = "https://tally.so/embed/mB2Wg5?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
 
 export default function DeleguerPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedDelegationType, setSelectedDelegationType] = useState<DelegationType | null>(null);
-  const [selectedDelegationCategory, setSelectedDelegationCategory] = useState<DelegationCategory | null>(null);
+  const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
 
-  const handleItemClick = (itemType: DelegationType, itemCategory: DelegationCategory) => {
-    setSelectedDelegationType(itemType);
-    setSelectedDelegationCategory(itemCategory);
-    setIsModalOpen(true);
+  const handleItemClick = (itemType: DelegationType) => {
+    setCurrentTallyDelegationType(itemType);
   };
+
+  if (currentTallyDelegationType) {
+    return (
+      <div className="container mx-auto py-8 px-4 md:px-0">
+        <Button variant="outline" onClick={() => setCurrentTallyDelegationType(null)} className="mb-6 flex items-center">
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Retour à la sélection
+        </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline text-2xl">
+              Nouvelle délégation: {currentTallyDelegationType}
+            </CardTitle>
+            <CardDescription>
+              Veuillez remplir le formulaire ci-dessous pour initier la délégation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <iframe
+              src={TALLY_EMBED_URL}
+              width="100%"
+              style={{ minHeight: '750px', border: 'none' }}
+              title={`Formulaire de délégation: ${currentTallyDelegationType}`}
+              allowFullScreen
+            >
+              Chargement du formulaire...
+            </iframe>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-0">
@@ -57,21 +88,12 @@ export default function DeleguerPage() {
                 key={item}
                 itemName={item}
                 icon={itemIcons[item as DelegationType]}
-                onClick={() => handleItemClick(item as DelegationType, category)}
+                onClick={() => handleItemClick(item as DelegationType)}
               />
             ))}
           </DelegationCategoryCard>
         ))}
       </div>
-
-      {selectedDelegationType && selectedDelegationCategory && (
-        <DelegationModal
-          isOpen={isModalOpen}
-          onOpenChange={setIsModalOpen}
-          delegationType={selectedDelegationType}
-          delegationCategory={selectedDelegationCategory}
-        />
-      )}
     </div>
   );
 }
