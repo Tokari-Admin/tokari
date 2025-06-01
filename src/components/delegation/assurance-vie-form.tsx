@@ -96,18 +96,21 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
       hasCoSubscriber: false,
       coSubscriberLastName: '',
       coSubscriberFirstName: '',
-      initialPaymentAmount: undefined,
-      scheduledPaymentAmount: undefined,
+      contractName: undefined,
+      initialPaymentAmount: '', // Changed from undefined
+      scheduledPaymentAmount: '', // Changed from undefined
       scheduledPaymentDebitDay: undefined,
       scheduledPaymentOtherDate: '',
+      beneficiaryClause: undefined,
       customBeneficiaryClause: '',
+      assetAllocationChoice: undefined,
       customAssetAllocation: '',
       notes: '',
     },
   });
 
   const watchHasCoSubscriber = form.watch('hasCoSubscriber');
-  const watchScheduledPaymentAmount = form.watch('scheduledPaymentAmount');
+  // const watchScheduledPaymentAmount = form.watch('scheduledPaymentAmount'); // Can be removed if form.getValues is preferred
   const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
   const watchBeneficiaryClause = form.watch('beneficiaryClause');
   const watchAssetAllocationChoice = form.watch('assetAllocationChoice');
@@ -135,8 +138,8 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
           coSubscriberFirstName: values.hasCoSubscriber ? values.coSubscriberFirstName : undefined,
           coSubscriberLastName: values.hasCoSubscriber ? values.coSubscriberLastName : undefined,
           contractName: values.contractName,
-          initialPaymentAmount: values.initialPaymentAmount ? Number(values.initialPaymentAmount) : undefined,
-          scheduledPaymentAmount: values.scheduledPaymentAmount ? Number(values.scheduledPaymentAmount) : undefined,
+          initialPaymentAmount: values.initialPaymentAmount && values.initialPaymentAmount !== '' ? Number(values.initialPaymentAmount) : undefined,
+          scheduledPaymentAmount: values.scheduledPaymentAmount && values.scheduledPaymentAmount !== '' ? Number(values.scheduledPaymentAmount) : undefined,
           scheduledPaymentDebitDay: (values.scheduledPaymentAmount && Number(values.scheduledPaymentAmount) > 0) ? values.scheduledPaymentDebitDay : undefined,
           scheduledPaymentOtherDate: (values.scheduledPaymentAmount && Number(values.scheduledPaymentAmount) > 0 && values.scheduledPaymentDebitDay === "Autre") ? values.scheduledPaymentOtherDate : undefined,
           beneficiaryClause: values.beneficiaryClause,
@@ -423,3 +426,4 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     </Card>
   );
 }
+
