@@ -42,7 +42,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             {/* Potential breadcrumbs or page title here */}
           </div>
         </header>
-        <main className="flex-1_flex-col_gap-4_p-4_md:gap-8_md:p-6">
+        <main className="flex-1 flex flex-col gap-4 p-4 md:gap-8 md:p-8">
           {children}
         </main>
       </SidebarInset>
