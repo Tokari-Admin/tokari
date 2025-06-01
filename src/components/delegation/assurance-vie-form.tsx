@@ -40,7 +40,7 @@ const formSchema = z.object({
   ], { required_error: "Nom du contrat est requis." }),
   initialPaymentAmount: z.coerce.number().positive({ message: "Le versement initial doit être un nombre positif." }).optional().or(z.literal(0)).or(z.literal('')),
   scheduledPaymentAmount: z.coerce.number().positive({ message: "Le versement programmé doit être un nombre positif." }).optional().or(z.literal(0)).or(z.literal('')),
-  scheduledPaymentDebitDay: z.enum(["05", "15", "25", "Autre"], { required_error: "Date de prélèvement est requise si un versement programmé est saisi." }).optional(),
+  scheduledPaymentDebitDay: z.enum(["05", "15", "25", "Autre"]).optional(),
   scheduledPaymentOtherDate: z.string().optional(),
   beneficiaryClause: z.enum([
     "Clause bénéficiaire générale",
@@ -51,23 +51,23 @@ const formSchema = z.object({
     "Importer une autre allocation d'actifs"
   ], { required_error: "Allocation d'actifs est requise." }),
   customAssetAllocation: z.string().optional(),
-  notes: z.string().optional(), // Corresponds to "Commentaire"
+  notes: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.hasCoSubscriber) {
-    if (!data.coSubscriberLastName) {
+    if (!data.coSubscriberLastName || data.coSubscriberLastName.trim() === "") {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Nom du co-souscripteur est requis.", path: ['coSubscriberLastName'] });
     }
-    if (!data.coSubscriberFirstName) {
+    if (!data.coSubscriberFirstName || data.coSubscriberFirstName.trim() === "") {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Prénom du co-souscripteur est requis.", path: ['coSubscriberFirstName'] });
     }
   }
-  if (data.scheduledPaymentAmount && data.scheduledPaymentAmount > 0 && !data.scheduledPaymentDebitDay) {
+  if (data.scheduledPaymentAmount && Number(data.scheduledPaymentAmount) > 0 && !data.scheduledPaymentDebitDay) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date de prélèvement est requise si un versement programmé est saisi.", path: ['scheduledPaymentDebitDay'] });
   }
-  if (data.scheduledPaymentDebitDay === "Autre" && !data.scheduledPaymentOtherDate) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez préciser l'autre date.", path: ['scheduledPaymentOtherDate'] });
+  if (data.scheduledPaymentAmount && Number(data.scheduledPaymentAmount) > 0 && data.scheduledPaymentDebitDay === "Autre" && (!data.scheduledPaymentOtherDate || data.scheduledPaymentOtherDate.trim() === "")) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez préciser l'autre date (JJ/MM).", path: ['scheduledPaymentOtherDate'] });
   }
-  if (data.assetAllocationChoice === "Importer une autre allocation d'actifs" && !data.customAssetAllocation) {
+  if (data.assetAllocationChoice === "Importer une autre allocation d'actifs" && (!data.customAssetAllocation || data.customAssetAllocation.trim() === "")) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez décrire l'allocation d'actifs.", path: ['customAssetAllocation'] });
   }
 });
@@ -92,8 +92,9 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
       hasCoSubscriber: false,
       coSubscriberLastName: '',
       coSubscriberFirstName: '',
-      initialPaymentAmount: undefined,
+      initialPaymentAmount: undefined, // Use undefined for optional number fields to allow placeholder to show
       scheduledPaymentAmount: undefined,
+      scheduledPaymentDebitDay: undefined,
       scheduledPaymentOtherDate: '',
       customAssetAllocation: '',
       notes: '',
@@ -101,9 +102,9 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
   });
 
   const watchHasCoSubscriber = form.watch('hasCoSubscriber');
+  const watchScheduledPaymentAmount = form.watch('scheduledPaymentAmount');
   const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
   const watchAssetAllocationChoice = form.watch('assetAllocationChoice');
-  const watchScheduledPaymentAmount = form.watch('scheduledPaymentAmount');
 
   async function onSubmit(values: AssuranceVieFormValues) {
     if (!user) {
@@ -130,8 +131,8 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
           contractName: values.contractName,
           initialPaymentAmount: values.initialPaymentAmount ? Number(values.initialPaymentAmount) : undefined,
           scheduledPaymentAmount: values.scheduledPaymentAmount ? Number(values.scheduledPaymentAmount) : undefined,
-          scheduledPaymentDebitDay: (values.scheduledPaymentAmount && values.scheduledPaymentAmount > 0) ? values.scheduledPaymentDebitDay : undefined,
-          scheduledPaymentOtherDate: (values.scheduledPaymentAmount && values.scheduledPaymentAmount > 0 && values.scheduledPaymentDebitDay === "Autre") ? values.scheduledPaymentOtherDate : undefined,
+          scheduledPaymentDebitDay: (values.scheduledPaymentAmount && Number(values.scheduledPaymentAmount) > 0) ? values.scheduledPaymentDebitDay : undefined,
+          scheduledPaymentOtherDate: (values.scheduledPaymentAmount && Number(values.scheduledPaymentAmount) > 0 && values.scheduledPaymentDebitDay === "Autre") ? values.scheduledPaymentOtherDate : undefined,
           beneficiaryClause: values.beneficiaryClause,
           assetAllocationChoice: values.assetAllocationChoice,
           customAssetAllocation: values.assetAllocationChoice === "Importer une autre allocation d'actifs" ? values.customAssetAllocation : undefined,
@@ -399,3 +400,4 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     </Card>
   );
 }
+

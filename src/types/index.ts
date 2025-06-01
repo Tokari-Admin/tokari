@@ -21,13 +21,13 @@ export interface DelegationItem {
     hasCoSubscriber?: boolean;
     coSubscriberFirstName?: string;
     coSubscriberLastName?: string;
-    contractName?: string; // e.g., "Cristalliance Avenir - VIE PLUS"
+    contractName?: "Cristalliance Avenir - VIE PLUS" | "Cristalliance Evoluvie - APICIL" | "Fipavie Neo - ODDO";
     initialPaymentAmount?: number;
     scheduledPaymentAmount?: number;
-    scheduledPaymentDebitDay?: '05' | '15' | '25' | 'Autre';
-    scheduledPaymentOtherDate?: string; // if scheduledPaymentDebitDay is 'Autre'
-    beneficiaryClause?: 'Clause bénéficiaire générale' | 'Clause bénéficiaire libre';
-    assetAllocationChoice?: 'Utiliser l\'allocation d\'actifs que j\'ai déjà importé' | 'Importer une autre allocation d\'actifs';
+    scheduledPaymentDebitDay?: "05" | "15" | "25" | "Autre";
+    scheduledPaymentOtherDate?: string; // if scheduledPaymentDebitDay is 'Autre' (e.g., "10/03")
+    beneficiaryClause?: "Clause bénéficiaire générale" | "Clause bénéficiaire libre";
+    assetAllocationChoice?: "Utiliser l'allocation d'actifs que j'ai déjà importé" | "Importer une autre allocation d'actifs";
     customAssetAllocation?: string; // if assetAllocationChoice is 'Importer une autre...'
     // Original generic fields - can be reused or deprecated based on specific form needs
     amount?: number; // Could be initialPaymentAmount
@@ -71,3 +71,4 @@ export function getCategoryForType(type: DelegationType): DelegationCategory | u
   }
   return undefined;
 }
+
