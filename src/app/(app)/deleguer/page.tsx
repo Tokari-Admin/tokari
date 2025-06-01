@@ -26,16 +26,11 @@ const itemIcons: Record<DelegationType, React.ReactNode> = {
 // Map of DelegationType to Tally Form Embed URL
 const TALLY_URLS: Partial<Record<DelegationType, string>> = {
   "PER": "https://tally.so/embed/mB2Wg5?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
-  // The user needs to specify which type this URL is for:
-  // "Assurance Vie": "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1", 
+  "Assurance Vie": "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
   "SCPI Nue Propriété": "https://tally.so/embed/wAjXpD?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
   "SCPI Pleine Propriété": "https://tally.so/embed/nrkZ5R?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
-  // Add other specific Tally form URLs here as they become known
+  // Add other specific Tally form URLs here for types like "Arbitrage" as they become known
 };
-
-// The user should specify which DelegationType this new URL is for.
-// For example, if it's for "Assurance Vie":
-// TALLY_URLS["Assurance Vie"] = "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
 
 
 export default function DeleguerPage() {
@@ -54,7 +49,7 @@ export default function DeleguerPage() {
         <body style='font-family:sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;height:80vh;margin:0;padding:20px;text-align:center;color:%234b5563;background-color:%23f9fafb;border-radius:8px;'>
           <h2 style='color:%231f2937;margin-bottom:8px;'>Formulaire pour ${itemType}</h2>
           <p style="font-size:0.9em;max-width:400px;color:%236b7280;">
-            Le formulaire Tally sp&eacute;cifique pour ce type d&apos;op&eacute;ration (<strong>${itemType}</strong>) n&apos;est pas encore configur&eacute;. 
+            Le formulaire Tally sp&eacute;cifique pour ce type d&apos;op&eacute;ration (<strong>${itemType}</strong>) n&apos;est pas encore configur&eacute;.
             Veuillez fournir l&apos;URL d&apos;int&eacute;gration Tally appropri&eacute;e.
           </p>
         </body>`;
@@ -65,12 +60,12 @@ export default function DeleguerPage() {
   if (currentTallyDelegationType && currentTallyEmbedUrl) {
     return (
       <div className="container mx-auto py-8 px-4 md:px-0">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={() => {
             setCurrentTallyDelegationType(null);
             setCurrentTallyEmbedUrl(null);
-          }} 
+          }}
           className="mb-6 flex items-center"
         >
           <ChevronLeft className="mr-2 h-4 w-4" />
@@ -82,7 +77,7 @@ export default function DeleguerPage() {
               Nouvelle délégation: {currentTallyDelegationType}
             </CardTitle>
             <CardDescription>
-              {TALLY_URLS[currentTallyDelegationType] 
+              {TALLY_URLS[currentTallyDelegationType]
                 ? "Veuillez remplir le formulaire ci-dessous pour initier la délégation."
                 : "Configuration du formulaire Tally pour ce type d'opération requise."}
             </CardDescription>
