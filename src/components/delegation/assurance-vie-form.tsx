@@ -2,7 +2,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useController } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
 
 
 const formSchema = z.object({
@@ -123,8 +124,9 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
   const watchScheduledPaymentAmount = form.watch('scheduledPaymentAmount');
   const watchBeneficiaryClause = form.watch('beneficiaryClause');
   const watchAssetAllocationChoice = form.watch('assetAllocationChoice');
-  const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
   const watchScheduledPaymentSpecificDate = form.watch('scheduledPaymentSpecificDate');
+  // Watch scheduledPaymentDebitDay to react to its changes for styling the trigger
+  const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
 
 
   async function onSubmit(values: AssuranceVieFormValues) {
@@ -177,6 +179,11 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
       setIsLoading(false);
     }
   }
+  
+  const { field: scheduledPaymentDebitDayField } = useController({
+    name: "scheduledPaymentDebitDay",
+    control: form.control,
+  });
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -256,7 +263,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 <FormItem>
                   <FormLabel>Nom du contrat *</FormLabel>
                   <FormControl>
-                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col space-y-1">
                       <FormItem className="flex items-center space-x-3 space-y-0">
                         <FormControl><RadioGroupItem value="Cristalliance Avenir - VIE PLUS" /></FormControl>
                         <FormLabel className="font-normal">Cristalliance Avenir - VIE PLUS</FormLabel>
@@ -302,19 +309,19 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
               <FormField
                 control={form.control}
                 name="scheduledPaymentDebitDay"
-                render={({ field }) => (
+                render={({ field }) => ( // field here is for scheduledPaymentDebitDay
                   <FormItem className="space-y-3 rounded-md border p-4 shadow-sm">
                     <FormLabel>Date de prélèvement du versement programmé *</FormLabel>
                     <FormControl>
                       <RadioGroup
                         onValueChange={(value) => {
-                          field.onChange(value);
+                          field.onChange(value); // Update scheduledPaymentDebitDay
                           if (value !== "Specific") {
                             form.setValue('scheduledPaymentSpecificDate', undefined, { shouldValidate: true });
                             setIsDatePickerOpen(false); 
                           }
                         }}
-                        value={field.value}
+                        value={field.value} // Controlled by scheduledPaymentDebitDay
                         className="flex flex-col space-y-1"
                       >
                         <FormItem className="flex items-center space-x-3 space-y-0">
@@ -329,37 +336,45 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                           <FormControl><RadioGroupItem value="25" id="debitDay25" /></FormControl>
                           <FormLabel htmlFor="debitDay25" className="font-normal">Le 25 du mois</FormLabel>
                         </FormItem>
+                        
+                        {/* Option for Specific Date Picker */}
                         <FormItem className="flex items-center space-x-3 space-y-0">
                           <FormControl>
-                            <RadioGroupItem 
-                              value="Specific"
-                              id="debitDaySpecificRadio"
-                            />
+                            <RadioGroupItem value="Specific" id="debitDaySpecificRadio" />
                           </FormControl>
                           <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                             <PopoverTrigger asChild>
-                              <FormLabel 
-                                htmlFor="debitDaySpecificRadio" // Links to the radio button
+                              <FormLabel
+                                htmlFor="debitDaySpecificRadio"
                                 className={cn(
-                                  "font-normal cursor-pointer flex items-center w-full rounded-md border border-input bg-transparent hover:bg-accent hover:text-accent-foreground px-3 py-2 text-sm",
+                                  "font-normal cursor-pointer flex-grow flex items-center rounded-md border border-input bg-transparent hover:bg-accent hover:text-accent-foreground px-3 py-2 text-sm h-10",
                                   field.value === "Specific" && "bg-accent text-accent-foreground",
-                                  !watchScheduledPaymentSpecificDate && field.value === "Specific" && "text-muted-foreground"
+                                  field.value === "Specific" && !watchScheduledPaymentSpecificDate && "text-muted-foreground"
                                 )}
-                                // onClick is not strictly needed on FormLabel if htmlFor works with PopoverTrigger asChild
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {watchScheduledPaymentSpecificDate && field.value === "Specific"
+                                {field.value === "Specific" && watchScheduledPaymentSpecificDate
                                   ? format(watchScheduledPaymentSpecificDate, "PPP")
                                   : "Choisir une autre date"}
                               </FormLabel>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
+                            <PopoverContent 
+                              className="w-auto p-0" 
+                              align="start"
+                              onInteractOutside={(e) => {
+                                // Prevent closing if the click is on the trigger itself or related elements
+                                // This can be fine-tuned if still problematic
+                                if ((e.target as HTMLElement)?.closest('[data-radix-popover-trigger]')) {
+                                  e.preventDefault();
+                                }
+                              }}
+                            >
                               <Calendar
                                 mode="single"
                                 selected={watchScheduledPaymentSpecificDate}
                                 onSelect={(date) => {
                                   form.setValue('scheduledPaymentSpecificDate', date, { shouldValidate: true });
-                                  field.onChange("Specific"); // Set RadioGroup to "Specific"
+                                  field.onChange("Specific"); // ensure radio group value is "Specific"
                                   setIsDatePickerOpen(false);
                                 }}
                                 disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1))}
@@ -383,7 +398,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 <FormItem>
                   <FormLabel>Clause bénéficiaire *</FormLabel>
                   <FormControl>
-                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col space-y-1">
                       <FormItem className="flex items-center space-x-3 space-y-0">
                         <FormControl><RadioGroupItem value="Clause bénéficiaire générale" /></FormControl>
                         <FormLabel className="font-normal">Clause bénéficiaire générale</FormLabel>
@@ -418,7 +433,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 <FormItem>
                   <FormLabel>Allocation d&apos;actifs (AT) *</FormLabel>
                   <FormControl>
-                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col space-y-1">
                       <FormItem className="flex items-center space-x-3 space-y-0">
                         <FormControl><RadioGroupItem value="Utiliser l'allocation d'actifs que j'ai déjà importé" /></FormControl>
                         <FormLabel className="font-normal">Utiliser l&apos;allocation d&apos;actifs que j&apos;ai déjà importé</FormLabel>
