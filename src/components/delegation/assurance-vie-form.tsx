@@ -63,11 +63,13 @@ const formSchema = z.object({
     }
   }
   
-  const scheduledPaymentAmount = Number(data.scheduledPaymentAmount);
-  if (scheduledPaymentAmount > 0 && !data.scheduledPaymentDebitDay) {
+  // When validating, data.scheduledPaymentAmount can be a string (e.g. '500' or '') or number
+  const scheduledPaymentAmountValue = Number(data.scheduledPaymentAmount);
+
+  if (scheduledPaymentAmountValue > 0 && !data.scheduledPaymentDebitDay) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date de prélèvement est requise si un versement programmé est saisi.", path: ['scheduledPaymentDebitDay'] });
   }
-  if (scheduledPaymentAmount > 0 && data.scheduledPaymentDebitDay === "Autre" && (!data.scheduledPaymentOtherDate || data.scheduledPaymentOtherDate.trim() === "")) {
+  if (scheduledPaymentAmountValue > 0 && data.scheduledPaymentDebitDay === "Autre" && (!data.scheduledPaymentOtherDate || data.scheduledPaymentOtherDate.trim() === "")) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez préciser l'autre date (JJ/MM).", path: ['scheduledPaymentOtherDate'] });
   }
 
@@ -113,12 +115,11 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
   });
 
   const watchHasCoSubscriber = form.watch('hasCoSubscriber');
-  const watchScheduledPaymentAmountValue = form.watch('scheduledPaymentAmount');
-  const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
+  // Use form.watch() directly in JSX for conditional rendering related to these fields
+  // const watchScheduledPaymentAmountValue = form.watch('scheduledPaymentAmount');
+  // const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
   const watchBeneficiaryClause = form.watch('beneficiaryClause');
   const watchAssetAllocationChoice = form.watch('assetAllocationChoice');
-
-  const numericScheduledPaymentAmount = Number(watchScheduledPaymentAmountValue);
 
   async function onSubmit(values: AssuranceVieFormValues) {
     if (!user) {
@@ -129,6 +130,9 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
 
     try {
       const clientFullName = `${values.subscriberFirstName} ${values.subscriberLastName}`;
+      const numericInitialPayment = values.initialPaymentAmount === '' ? undefined : Number(values.initialPaymentAmount);
+      const numericScheduledPayment = values.scheduledPaymentAmount === '' ? undefined : Number(values.scheduledPaymentAmount);
+
       const delegationData: Omit<DelegationItem, 'id' | 'createdDate'> & { createdDate: any; lastModifiedDate: any } = {
         userId: user.uid,
         type: "Assurance Vie",
@@ -143,10 +147,10 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
           coSubscriberFirstName: values.hasCoSubscriber ? values.coSubscriberFirstName : undefined,
           coSubscriberLastName: values.hasCoSubscriber ? values.coSubscriberLastName : undefined,
           contractName: values.contractName,
-          initialPaymentAmount: values.initialPaymentAmount !== '' ? Number(values.initialPaymentAmount) : undefined,
-          scheduledPaymentAmount: values.scheduledPaymentAmount !== '' ? Number(values.scheduledPaymentAmount) : undefined,
-          scheduledPaymentDebitDay: (values.scheduledPaymentAmount !== '' && Number(values.scheduledPaymentAmount) > 0) ? values.scheduledPaymentDebitDay : undefined,
-          scheduledPaymentOtherDate: (values.scheduledPaymentAmount !== '' && Number(values.scheduledPaymentAmount) > 0 && values.scheduledPaymentDebitDay === "Autre") ? values.scheduledPaymentOtherDate : undefined,
+          initialPaymentAmount: numericInitialPayment,
+          scheduledPaymentAmount: numericScheduledPayment,
+          scheduledPaymentDebitDay: (numericScheduledPayment && numericScheduledPayment > 0) ? values.scheduledPaymentDebitDay : undefined,
+          scheduledPaymentOtherDate: (numericScheduledPayment && numericScheduledPayment > 0 && values.scheduledPaymentDebitDay === "Autre") ? values.scheduledPaymentOtherDate : undefined,
           beneficiaryClause: values.beneficiaryClause,
           customBeneficiaryClause: values.beneficiaryClause === "Clause bénéficiaire libre" ? values.customBeneficiaryClause : undefined,
           assetAllocationChoice: values.assetAllocationChoice,
@@ -271,7 +275,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Versement initial (€)</FormLabel>
-                  <FormControl><Input type="number" placeholder="Entrer le montant du VI" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value))} /></FormControl>
+                  <FormControl><Input type="number" placeholder="Entrer le montant du VI" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -282,12 +286,15 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Versement programmé (€)</FormLabel>
-                  <FormControl><Input type="number" placeholder="Entrer le montant du VP" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value))} /></FormControl>
+                  {/* Removed custom onChange that parsed to float, rely on string and coerce */}
+                  <FormControl><Input type="number" placeholder="Entrer le montant du VP" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            {numericScheduledPaymentAmount > 0 && (
+
+            {/* Conditional section for scheduled payment debit day */}
+            {Number(form.watch('scheduledPaymentAmount')) > 0 && (
               <>
                 <FormField
                   control={form.control}
@@ -319,7 +326,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                     </FormItem>
                   )}
                 />
-                {watchScheduledPaymentDebitDay === "Autre" && (
+                {form.watch('scheduledPaymentDebitDay') === "Autre" && (
                   <FormField
                     control={form.control}
                     name="scheduledPaymentOtherDate"
@@ -334,6 +341,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 )}
               </>
             )}
+            
             <FormField
               control={form.control}
               name="beneficiaryClause"
@@ -434,3 +442,4 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
   );
 }
 
+    
