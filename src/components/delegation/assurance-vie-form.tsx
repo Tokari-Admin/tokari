@@ -46,6 +46,7 @@ const formSchema = z.object({
     "Clause bénéficiaire générale",
     "Clause bénéficiaire libre"
   ], { required_error: "Clause bénéficiaire est requise." }),
+  customBeneficiaryClause: z.string().optional(),
   assetAllocationChoice: z.enum([
     "Utiliser l'allocation d'actifs que j'ai déjà importé",
     "Importer une autre allocation d'actifs"
@@ -67,8 +68,11 @@ const formSchema = z.object({
   if (data.scheduledPaymentAmount && Number(data.scheduledPaymentAmount) > 0 && data.scheduledPaymentDebitDay === "Autre" && (!data.scheduledPaymentOtherDate || data.scheduledPaymentOtherDate.trim() === "")) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez préciser l'autre date (JJ/MM).", path: ['scheduledPaymentOtherDate'] });
   }
+  if (data.beneficiaryClause === "Clause bénéficiaire libre" && (!data.customBeneficiaryClause || data.customBeneficiaryClause.trim() === "")) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez détailler la clause bénéficiaire libre.", path: ['customBeneficiaryClause'] });
+  }
   if (data.assetAllocationChoice === "Importer une autre allocation d'actifs" && (!data.customAssetAllocation || data.customAssetAllocation.trim() === "")) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez décrire l'allocation d'actifs.", path: ['customAssetAllocation'] });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez décrire l'allocation d'actifs ou fournir un lien.", path: ['customAssetAllocation'] });
   }
 });
 
@@ -92,10 +96,11 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
       hasCoSubscriber: false,
       coSubscriberLastName: '',
       coSubscriberFirstName: '',
-      initialPaymentAmount: undefined, // Use undefined for optional number fields to allow placeholder to show
+      initialPaymentAmount: undefined,
       scheduledPaymentAmount: undefined,
       scheduledPaymentDebitDay: undefined,
       scheduledPaymentOtherDate: '',
+      customBeneficiaryClause: '',
       customAssetAllocation: '',
       notes: '',
     },
@@ -104,6 +109,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
   const watchHasCoSubscriber = form.watch('hasCoSubscriber');
   const watchScheduledPaymentAmount = form.watch('scheduledPaymentAmount');
   const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
+  const watchBeneficiaryClause = form.watch('beneficiaryClause');
   const watchAssetAllocationChoice = form.watch('assetAllocationChoice');
 
   async function onSubmit(values: AssuranceVieFormValues) {
@@ -134,6 +140,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
           scheduledPaymentDebitDay: (values.scheduledPaymentAmount && Number(values.scheduledPaymentAmount) > 0) ? values.scheduledPaymentDebitDay : undefined,
           scheduledPaymentOtherDate: (values.scheduledPaymentAmount && Number(values.scheduledPaymentAmount) > 0 && values.scheduledPaymentDebitDay === "Autre") ? values.scheduledPaymentOtherDate : undefined,
           beneficiaryClause: values.beneficiaryClause,
+          customBeneficiaryClause: values.beneficiaryClause === "Clause bénéficiaire libre" ? values.customBeneficiaryClause : undefined,
           assetAllocationChoice: values.assetAllocationChoice,
           customAssetAllocation: values.assetAllocationChoice === "Importer une autre allocation d'actifs" ? values.customAssetAllocation : undefined,
         },
@@ -272,7 +279,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 </FormItem>
               )}
             />
-            {(watchScheduledPaymentAmount && Number(watchScheduledPaymentAmount) > 0) && (
+            {( Number(form.getValues('scheduledPaymentAmount')) > 0) && (
               <FormField
                 control={form.control}
                 name="scheduledPaymentDebitDay"
@@ -304,7 +311,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 )}
               />
             )}
-            {watchScheduledPaymentDebitDay === "Autre" && (watchScheduledPaymentAmount && Number(watchScheduledPaymentAmount) > 0) && (
+            {watchScheduledPaymentDebitDay === "Autre" && (Number(form.getValues('scheduledPaymentAmount')) > 0) && (
               <FormField
                 control={form.control}
                 name="scheduledPaymentOtherDate"
@@ -339,6 +346,19 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 </FormItem>
               )}
             />
+            {watchBeneficiaryClause === "Clause bénéficiaire libre" && (
+              <FormField
+                control={form.control}
+                name="customBeneficiaryClause"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Détail de la clause bénéficiaire libre *</FormLabel>
+                    <FormControl><Textarea placeholder="Décrivez la clause bénéficiaire..." {...field} className="min-h-[100px]" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="assetAllocationChoice"
@@ -368,7 +388,10 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Détail de l&apos;autre allocation d&apos;actifs *</FormLabel>
-                    <FormControl><Textarea placeholder="Décrivez l'allocation..." {...field} className="min-h-[100px]" /></FormControl>
+                    <FormControl><Textarea placeholder="Décrivez l'allocation ou fournissez un lien..." {...field} className="min-h-[100px]" /></FormControl>
+                    <FormDescription>
+                      La fonctionnalité d&apos;import direct de fichier sera ajoutée ultérieurement. Pour l&apos;instant, veuillez décrire ou coller un lien.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -400,4 +423,3 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     </Card>
   );
 }
-
