@@ -14,11 +14,13 @@ export interface DelegationItem {
   createdDate: number; // Store as Firestore Timestamp or epoch milliseconds
   lastModifiedDate?: number;
   notes?: string;
-  // Example of specific fields, can be expanded
   details?: {
     amount?: number;
     policyNumber?: string;
     documentUrl?: string;
+    // Fields for native Assurance Vie form
+    productType?: string;
+    riskProfile?: string;
     [key: string]: any; // For other dynamic fields
   };
 }
@@ -55,3 +57,4 @@ export function getCategoryForType(type: DelegationType): DelegationCategory | u
   }
   return undefined;
 }
+

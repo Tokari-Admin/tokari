@@ -9,7 +9,10 @@ import type { DelegationCategory, DelegationType } from '@/types';
 import { DelegationSubCategories, getCategoryForType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/hooks/use-auth'; 
+import { useAuth } from '@/hooks/use-auth';
+import { AssuranceVieForm } from '@/components/delegation/assurance-vie-form'; // New Import
+import { useToast } from '@/hooks/use-toast';
+
 
 const categoryIcons = {
   Souscription: <FilePlus className="h-8 w-8" />,
@@ -26,7 +29,7 @@ const itemIcons: Record<DelegationType, React.ReactNode> = {
 
 const TALLY_URLS: Partial<Record<DelegationType, string>> = {
   "PER": "https://tally.so/embed/mB2Wg5",
-  "Assurance Vie": "https://tally.so/embed/mKa4yX",
+  // "Assurance Vie": "https://tally.so/embed/mKa4yX", // Commented out to use native form
   "SCPI Nue Propriété": "https://tally.so/embed/wAjXpD",
   "SCPI Pleine Propriété": "https://tally.so/embed/nrkZ5R",
   "Arbitrage": "https://tally.so/embed/mOoN7R",
@@ -35,22 +38,33 @@ const TALLY_URLS: Partial<Record<DelegationType, string>> = {
 const TALLY_DEFAULT_PARAMS = "alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
 
 export default function DeleguerPage() {
-  const { user } = useAuth(); 
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
   const [currentTallyEmbedUrl, setCurrentTallyEmbedUrl] = useState<string | null>(null);
+  const [showAssuranceVieNativeForm, setShowAssuranceVieNativeForm] = useState(false);
+
 
   const handleItemClick = (itemType: DelegationType) => {
+    if (itemType === "Assurance Vie") {
+      setShowAssuranceVieNativeForm(true);
+      setCurrentTallyDelegationType(null);
+      setCurrentTallyEmbedUrl(null);
+      return;
+    }
+
     setCurrentTallyDelegationType(itemType);
+    setShowAssuranceVieNativeForm(false);
     const baseEmbedUrl = TALLY_URLS[itemType];
 
-    if (baseEmbedUrl && user) { 
+    if (baseEmbedUrl && user) {
       const queryParams = new URLSearchParams(TALLY_DEFAULT_PARAMS);
       queryParams.append('userId', user.uid);
       queryParams.append('delegationType', itemType);
       setCurrentTallyEmbedUrl(`${baseEmbedUrl}?${queryParams.toString()}`);
     } else if (baseEmbedUrl) {
        const queryParams = new URLSearchParams(TALLY_DEFAULT_PARAMS);
-       queryParams.append('delegationType', itemType); 
+       queryParams.append('delegationType', itemType);
        setCurrentTallyEmbedUrl(`${baseEmbedUrl}?${queryParams.toString()}`);
        console.warn("User not available for Tally URL, userId not included.");
     } else {
@@ -58,23 +72,54 @@ export default function DeleguerPage() {
         <body style='font-family:sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;height:80vh;margin:0;padding:20px;text-align:center;color:%234b5563;background-color:%23f9fafb;border-radius:8px;'>
           <h2 style='color:%231f2937;margin-bottom:8px;'>Formulaire pour ${itemType}</h2>
           <p style="font-size:0.9em;max-width:400px;color:%236b7280;">
-            Le formulaire Tally sp&eacute;cifique pour ce type d&apos;op&eacute;ration (<strong>${itemType}</strong>) n&apos;est pas encore configur&eacute;.
-            Veuillez fournir l&apos;URL d&apos;int&eacute;gration Tally appropri&eacute;e.
+            Le formulaire Tally sp&eacute;cifique pour ce type d&apos;op&eacute;ration (<strong>${itemType}</strong>) n&apos;est pas encore configur&eacute; ou ce type utilise un formulaire natif.
           </p>
         </body>`;
       setCurrentTallyEmbedUrl(`data:text/html,${encodeURIComponent(placeholderHtml)}`);
     }
   };
 
+  const resetSelection = () => {
+    setCurrentTallyDelegationType(null);
+    setCurrentTallyEmbedUrl(null);
+    setShowAssuranceVieNativeForm(false);
+  };
+
+  const handleNativeFormSuccess = () => {
+    setShowAssuranceVieNativeForm(false);
+    toast({
+      title: "Opération Enregistrée",
+      description: "L'opération Assurance Vie a été enregistrée. Vous pouvez la consulter dans 'Mes Opérations'.",
+    });
+    // Optionally navigate or refresh data here
+  };
+
+
+  if (showAssuranceVieNativeForm) {
+    return (
+      <div className="container mx-auto py-8 px-4 md:px-0">
+        <Button
+          variant="outline"
+          onClick={resetSelection}
+          className="mb-6 flex items-center"
+        >
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Retour à la sélection
+        </Button>
+        <AssuranceVieForm 
+          onFormSubmitSuccess={handleNativeFormSuccess} 
+          onCancel={resetSelection} 
+        />
+      </div>
+    );
+  }
+
   if (currentTallyDelegationType && currentTallyEmbedUrl) {
     return (
       <div className="container mx-auto py-8 px-4 md:px-0">
         <Button
           variant="outline"
-          onClick={() => {
-            setCurrentTallyDelegationType(null);
-            setCurrentTallyEmbedUrl(null);
-          }}
+          onClick={resetSelection}
           className="mb-6 flex items-center"
         >
           <ChevronLeft className="mr-2 h-4 w-4" />
@@ -132,7 +177,7 @@ export default function DeleguerPage() {
                 itemName={item}
                 icon={itemIcons[item as DelegationType]}
                 onClick={() => handleItemClick(item as DelegationType)}
-                category={category} 
+                category={getCategoryForType(item as DelegationType) || category}
               />
             ))}
           </DelegationCategoryCard>
@@ -141,3 +186,4 @@ export default function DeleguerPage() {
     </div>
   );
 }
+
