@@ -1,8 +1,8 @@
+
 'use client';
 
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { DelegationCategory } from '@/types';
 
@@ -10,19 +10,23 @@ interface DelegationItemButtonProps {
   itemName: string;
   icon: ReactNode;
   onClick: () => void;
-  category?: DelegationCategory;
+  category: DelegationCategory; // Made category required
 }
 
 export function DelegationItemButton({ itemName, icon, onClick, category }: DelegationItemButtonProps) {
   const hoverClasses = category === 'Souscription'
-    ? 'hover:border-accent-light hover:shadow-md' // Lighter purple border for Souscription
-    : 'hover:border-primary hover:shadow-md'; // Default blue border for others
+    ? 'hover:bg-accent-light hover:text-accent-foreground hover:border-accent-light/70 hover:shadow-md'
+    : 'hover:bg-secondary hover:text-secondary-foreground hover:border-primary hover:shadow-md';
 
   return (
     <Button
       variant="outline"
       className={cn(
         "h-auto w-full flex-col items-start justify-start p-4 text-left shadow-sm transition-all",
+        // The base "outline" variant is: "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+        // The hoverClasses below will be merged. 
+        // For Souscription: hover:bg-accent-light should override hover:bg-accent.
+        // For Actes de Gestion: hover:bg-secondary should override hover:bg-accent.
         hoverClasses
       )}
       onClick={onClick}
