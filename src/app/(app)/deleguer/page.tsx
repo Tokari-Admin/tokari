@@ -29,7 +29,7 @@ const TALLY_URLS: Partial<Record<DelegationType, string>> = {
   "Assurance Vie": "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
   "SCPI Nue Propriété": "https://tally.so/embed/wAjXpD?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
   "SCPI Pleine Propriété": "https://tally.so/embed/nrkZ5R?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
-  // Add other specific Tally form URLs here for types like "Arbitrage" as they become known
+  "Arbitrage": "https://tally.so/embed/mOoN7R?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
 };
 
 
