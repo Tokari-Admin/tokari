@@ -28,7 +28,7 @@ body {
 
     --accent: 266 73.3% 60.2%; /* #9050E3 */
     --accent-foreground: 0 0% 100%; /* White */
-    --accent-light: 266 70% 80%; /* Lighter Purple for hover */
+    --accent-light: 266 60% 93%; /* Very light purple for hover */
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -78,7 +78,7 @@ body {
 
     --accent: 266 73.3% 60.2%;
     --accent-foreground: 0 0% 100%;
-    --accent-light: 266 70% 70%; /* Lighter Purple for dark theme hover - adjust if needed */
+    --accent-light: 266 60% 80%; /* Lighter Purple for dark theme hover - adjust if needed */
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
