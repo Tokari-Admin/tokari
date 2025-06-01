@@ -26,12 +26,18 @@ const itemIcons: Record<DelegationType, React.ReactNode> = {
 // Map of DelegationType to Tally Form Embed URL
 const TALLY_URLS: Partial<Record<DelegationType, string>> = {
   "PER": "https://tally.so/embed/mB2Wg5?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
-  // Add other specific Tally form URLs here once known
-  // e.g., "Assurance Vie": "YOUR_ASSURANCE_VIE_TALLY_URL",
+  // This was the one previously assigned to NEW_TALLY_URL_TO_ASSIGN, let's assume it's for Assurance Vie for now
+  // The user needs to specify which type this URL is for:
+  // "Assurance Vie": "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1", 
+  "SCPI Nue Propriété": "https://tally.so/embed/wAjXpD?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
+  // Add other specific Tally form URLs here as they become known
 };
 
-// The new Tally URL to be assigned to a specific DelegationType
-// const NEW_TALLY_URL_TO_ASSIGN = "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
+// The user should specify which DelegationType this new URL is for.
+// For example, if it's for "Assurance Vie":
+// TALLY_URLS["Assurance Vie"] = "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
+// Or if it's for another type like "SCPI Pleine Propriété":
+// TALLY_URLS["SCPI Pleine Propriété"] = "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
 
 export default function DeleguerPage() {
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
@@ -44,7 +50,7 @@ export default function DeleguerPage() {
     if (embedUrl) {
       setCurrentTallyEmbedUrl(embedUrl);
     } else {
-      // Placeholder for types not yet in TALLY_URLS or if a new URL hasn't been assigned a type
+      // Placeholder for types not yet in TALLY_URLS
       const placeholderHtml = `
         <body style='font-family:sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;height:80vh;margin:0;padding:20px;text-align:center;color:%234b5563;background-color:%23f9fafb;border-radius:8px;'>
           <h2 style='color:%231f2937;margin-bottom:8px;'>Formulaire pour ${itemType}</h2>
@@ -131,4 +137,3 @@ export default function DeleguerPage() {
     </div>
   );
 }
-
