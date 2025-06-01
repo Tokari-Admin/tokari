@@ -23,7 +23,15 @@ const itemIcons: Record<DelegationType, React.ReactNode> = {
   "Arbitrage": <GitCompareArrows className="h-6 w-6" />,
 };
 
-const PER_TALLY_EMBED_URL = "https://tally.so/embed/mB2Wg5?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
+// Map of DelegationType to Tally Form Embed URL
+const TALLY_URLS: Partial<Record<DelegationType, string>> = {
+  "PER": "https://tally.so/embed/mB2Wg5?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
+  // Add other specific Tally form URLs here once known
+  // e.g., "Assurance Vie": "YOUR_ASSURANCE_VIE_TALLY_URL",
+};
+
+// The new Tally URL to be assigned to a specific DelegationType
+// const NEW_TALLY_URL_TO_ASSIGN = "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
 
 export default function DeleguerPage() {
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
@@ -31,14 +39,17 @@ export default function DeleguerPage() {
 
   const handleItemClick = (itemType: DelegationType) => {
     setCurrentTallyDelegationType(itemType);
-    if (itemType === "PER") {
-      setCurrentTallyEmbedUrl(PER_TALLY_EMBED_URL);
+    const embedUrl = TALLY_URLS[itemType];
+
+    if (embedUrl) {
+      setCurrentTallyEmbedUrl(embedUrl);
     } else {
+      // Placeholder for types not yet in TALLY_URLS or if a new URL hasn't been assigned a type
       const placeholderHtml = `
         <body style='font-family:sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;height:80vh;margin:0;padding:20px;text-align:center;color:%234b5563;background-color:%23f9fafb;border-radius:8px;'>
           <h2 style='color:%231f2937;margin-bottom:8px;'>Formulaire pour ${itemType}</h2>
           <p style="font-size:0.9em;max-width:400px;color:%236b7280;">
-            Le formulaire Tally sp&eacute;cifique pour ce type d&apos;op&eacute;ration n&apos;est pas encore configur&eacute;. 
+            Le formulaire Tally sp&eacute;cifique pour ce type d&apos;op&eacute;ration (<strong>${itemType}</strong>) n&apos;est pas encore configur&eacute;. 
             Veuillez fournir l&apos;URL d&apos;int&eacute;gration Tally appropri&eacute;e.
           </p>
         </body>`;
@@ -66,9 +77,9 @@ export default function DeleguerPage() {
               Nouvelle délégation: {currentTallyDelegationType}
             </CardTitle>
             <CardDescription>
-              {currentTallyDelegationType === "PER" 
+              {TALLY_URLS[currentTallyDelegationType] 
                 ? "Veuillez remplir le formulaire ci-dessous pour initier la délégation."
-                : "Configuration du formulaire requise."}
+                : "Configuration du formulaire Tally pour ce type d'opération requise."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -120,3 +131,4 @@ export default function DeleguerPage() {
     </div>
   );
 }
+
