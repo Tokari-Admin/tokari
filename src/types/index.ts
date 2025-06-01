@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type DelegationStatus = 'En attente' | 'En cours' | 'Terminé';
@@ -44,3 +45,13 @@ export const DelegationSubCategories = {
 export type SouscriptionType = typeof DelegationSubCategories.Souscription[number];
 export type ActesDeGestionType = typeof DelegationSubCategories['Actes de Gestion'][number];
 export type DelegationType = SouscriptionType | ActesDeGestionType;
+
+export function getCategoryForType(type: DelegationType): DelegationCategory | undefined {
+  if ((DelegationSubCategories.Souscription as readonly string[]).includes(type)) {
+    return 'Souscription';
+  }
+  if ((DelegationSubCategories['Actes de Gestion'] as readonly string[]).includes(type)) {
+    return 'Actes de Gestion';
+  }
+  return undefined;
+}
