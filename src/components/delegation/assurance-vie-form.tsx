@@ -20,12 +20,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { Loader2, CalendarIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { DelegationCategory, DelegationItem, DelegationStatus } from '@/types';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+
 
 const formSchema = z.object({
   subscriberLastName: z.string().min(1, { message: "Nom du souscripteur est requis." }),
@@ -40,8 +45,8 @@ const formSchema = z.object({
   ], { required_error: "Nom du contrat est requis." }),
   initialPaymentAmount: z.union([z.literal(''), z.coerce.number().nonnegative({ message: "Le versement initial doit être un nombre positif ou zéro." })]).optional(),
   scheduledPaymentAmount: z.union([z.literal(''), z.coerce.number().nonnegative({ message: "Le versement programmé doit être un nombre positif ou zéro." })]).optional(),
-  scheduledPaymentDebitDay: z.enum(["05", "15", "25", "Autre"]).optional(),
-  scheduledPaymentOtherDate: z.string().optional(),
+  scheduledPaymentDebitDay: z.enum(["05", "15", "25", "Specific"]).optional(),
+  scheduledPaymentSpecificDate: z.date().optional(),
   beneficiaryClause: z.enum([
     "Clause bénéficiaire générale",
     "Clause bénéficiaire libre"
@@ -63,14 +68,13 @@ const formSchema = z.object({
     }
   }
   
-  // When validating, data.scheduledPaymentAmount can be a string (e.g. '500' or '') or number
   const scheduledPaymentAmountValue = Number(data.scheduledPaymentAmount);
 
   if (scheduledPaymentAmountValue > 0 && !data.scheduledPaymentDebitDay) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date de prélèvement est requise si un versement programmé est saisi.", path: ['scheduledPaymentDebitDay'] });
   }
-  if (scheduledPaymentAmountValue > 0 && data.scheduledPaymentDebitDay === "Autre" && (!data.scheduledPaymentOtherDate || data.scheduledPaymentOtherDate.trim() === "")) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez préciser l'autre date (JJ/MM).", path: ['scheduledPaymentOtherDate'] });
+  if (scheduledPaymentAmountValue > 0 && data.scheduledPaymentDebitDay === "Specific" && !data.scheduledPaymentSpecificDate) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez préciser la date spécifique de prélèvement.", path: ['scheduledPaymentSpecificDate'] });
   }
 
   if (data.beneficiaryClause === "Clause bénéficiaire libre" && (!data.customBeneficiaryClause || data.customBeneficiaryClause.trim() === "")) {
@@ -92,6 +96,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   const form = useForm<AssuranceVieFormValues>({
     resolver: zodResolver(formSchema),
@@ -105,7 +110,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
       initialPaymentAmount: '',
       scheduledPaymentAmount: '',
       scheduledPaymentDebitDay: undefined,
-      scheduledPaymentOtherDate: '',
+      scheduledPaymentSpecificDate: undefined,
       beneficiaryClause: undefined,
       customBeneficiaryClause: '',
       assetAllocationChoice: undefined,
@@ -115,9 +120,9 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
   });
 
   const watchHasCoSubscriber = form.watch('hasCoSubscriber');
-  // Use form.watch() directly in JSX for conditional rendering related to these fields
-  // const watchScheduledPaymentAmountValue = form.watch('scheduledPaymentAmount');
-  // const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
+  const watchScheduledPaymentAmount = form.watch('scheduledPaymentAmount');
+  const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
+  const watchScheduledPaymentSpecificDate = form.watch('scheduledPaymentSpecificDate');
   const watchBeneficiaryClause = form.watch('beneficiaryClause');
   const watchAssetAllocationChoice = form.watch('assetAllocationChoice');
 
@@ -150,7 +155,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
           initialPaymentAmount: numericInitialPayment,
           scheduledPaymentAmount: numericScheduledPayment,
           scheduledPaymentDebitDay: (numericScheduledPayment && numericScheduledPayment > 0) ? values.scheduledPaymentDebitDay : undefined,
-          scheduledPaymentOtherDate: (numericScheduledPayment && numericScheduledPayment > 0 && values.scheduledPaymentDebitDay === "Autre") ? values.scheduledPaymentOtherDate : undefined,
+          scheduledPaymentSpecificDate: (numericScheduledPayment && numericScheduledPayment > 0 && values.scheduledPaymentDebitDay === "Specific") ? values.scheduledPaymentSpecificDate : undefined,
           beneficiaryClause: values.beneficiaryClause,
           customBeneficiaryClause: values.beneficiaryClause === "Clause bénéficiaire libre" ? values.customBeneficiaryClause : undefined,
           assetAllocationChoice: values.assetAllocationChoice,
@@ -286,24 +291,32 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Versement programmé (€)</FormLabel>
-                  {/* Removed custom onChange that parsed to float, rely on string and coerce */}
                   <FormControl><Input type="number" placeholder="Entrer le montant du VP" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Conditional section for scheduled payment debit day */}
-            {Number(form.watch('scheduledPaymentAmount')) > 0 && (
-              <>
+            {Number(watchScheduledPaymentAmount) > 0 && (
+              <div className="space-y-4 rounded-md border p-4 shadow-sm">
+                 <FormLabel>Date de prélèvement du versement programmé *</FormLabel>
                 <FormField
                   control={form.control}
                   name="scheduledPaymentDebitDay"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date de prélèvement du versement programmé *</FormLabel>
+                    <FormItem className="space-y-3">
                       <FormControl>
-                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                        <RadioGroup
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            if (value !== "Specific") {
+                              form.setValue('scheduledPaymentSpecificDate', undefined);
+                              setIsDatePickerOpen(false);
+                            }
+                          }}
+                          value={field.value}
+                          className="flex flex-col space-y-1"
+                        >
                           <FormItem className="flex items-center space-x-3 space-y-0">
                             <FormControl><RadioGroupItem value="05" /></FormControl>
                             <FormLabel className="font-normal">Le 05 du mois</FormLabel>
@@ -316,30 +329,62 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                             <FormControl><RadioGroupItem value="25" /></FormControl>
                             <FormLabel className="font-normal">Le 25 du mois</FormLabel>
                           </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl><RadioGroupItem value="Autre" /></FormControl>
-                            <FormLabel className="font-normal">Choisir une autre date</FormLabel>
-                          </FormItem>
                         </RadioGroup>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                {form.watch('scheduledPaymentDebitDay') === "Autre" && (
-                  <FormField
-                    control={form.control}
-                    name="scheduledPaymentOtherDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Autre date de prélèvement (JJ/MM) *</FormLabel>
-                        <FormControl><Input placeholder="ex: 10/03" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </>
+                 <FormField
+                  control={form.control}
+                  name="scheduledPaymentSpecificDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                       <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground",
+                                watchScheduledPaymentDebitDay === "Specific" && "ring-2 ring-primary"
+                              )}
+                              onClick={() => {
+                                form.setValue('scheduledPaymentDebitDay', 'Specific');
+                                setIsDatePickerOpen(true);
+                              }}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Choisir une autre date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => {
+                              field.onChange(date);
+                              form.setValue('scheduledPaymentDebitDay', 'Specific');
+                              setIsDatePickerOpen(false);
+                            }}
+                            disabled={(date) =>
+                              date < new Date(new Date().setDate(new Date().getDate() -1)) // Disable past dates
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             )}
             
             <FormField
@@ -441,5 +486,3 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     </Card>
   );
 }
-
-    

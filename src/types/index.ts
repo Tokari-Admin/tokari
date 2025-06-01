@@ -24,8 +24,8 @@ export interface DelegationItem {
     contractName?: "Cristalliance Avenir - VIE PLUS" | "Cristalliance Evoluvie - APICIL" | "Fipavie Neo - ODDO";
     initialPaymentAmount?: number;
     scheduledPaymentAmount?: number;
-    scheduledPaymentDebitDay?: "05" | "15" | "25" | "Autre";
-    scheduledPaymentOtherDate?: string; // if scheduledPaymentDebitDay is 'Autre' (e.g., "10/03")
+    scheduledPaymentDebitDay?: "05" | "15" | "25" | "Specific"; // New: "Specific" for date picker
+    scheduledPaymentSpecificDate?: Date; // New: To store the date from picker
     beneficiaryClause?: "Clause bénéficiaire générale" | "Clause bénéficiaire libre";
     customBeneficiaryClause?: string; // For "Clause bénéficiaire libre"
     assetAllocationChoice?: "Utiliser l'allocation d'actifs que j'ai déjà importé" | "Importer une autre allocation d'actifs";
@@ -72,4 +72,3 @@ export function getCategoryForType(type: DelegationType): DelegationCategory | u
   }
   return undefined;
 }
-
