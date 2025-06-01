@@ -23,19 +23,40 @@ const itemIcons: Record<DelegationType, React.ReactNode> = {
   "Arbitrage": <GitCompareArrows className="h-6 w-6" />,
 };
 
-const TALLY_EMBED_URL = "https://tally.so/embed/mB2Wg5?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
+const PER_TALLY_EMBED_URL = "https://tally.so/embed/mB2Wg5?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
 
 export default function DeleguerPage() {
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
+  const [currentTallyEmbedUrl, setCurrentTallyEmbedUrl] = useState<string | null>(null);
 
   const handleItemClick = (itemType: DelegationType) => {
     setCurrentTallyDelegationType(itemType);
+    if (itemType === "PER") {
+      setCurrentTallyEmbedUrl(PER_TALLY_EMBED_URL);
+    } else {
+      const placeholderHtml = `
+        <body style='font-family:sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;height:80vh;margin:0;padding:20px;text-align:center;color:%234b5563;background-color:%23f9fafb;border-radius:8px;'>
+          <h2 style='color:%231f2937;margin-bottom:8px;'>Formulaire pour ${itemType}</h2>
+          <p style="font-size:0.9em;max-width:400px;color:%236b7280;">
+            Le formulaire Tally sp&eacute;cifique pour ce type d&apos;op&eacute;ration n&apos;est pas encore configur&eacute;. 
+            Veuillez fournir l&apos;URL d&apos;int&eacute;gration Tally appropri&eacute;e.
+          </p>
+        </body>`;
+      setCurrentTallyEmbedUrl(`data:text/html,${encodeURIComponent(placeholderHtml)}`);
+    }
   };
 
-  if (currentTallyDelegationType) {
+  if (currentTallyDelegationType && currentTallyEmbedUrl) {
     return (
       <div className="container mx-auto py-8 px-4 md:px-0">
-        <Button variant="outline" onClick={() => setCurrentTallyDelegationType(null)} className="mb-6 flex items-center">
+        <Button 
+          variant="outline" 
+          onClick={() => {
+            setCurrentTallyDelegationType(null);
+            setCurrentTallyEmbedUrl(null);
+          }} 
+          className="mb-6 flex items-center"
+        >
           <ChevronLeft className="mr-2 h-4 w-4" />
           Retour à la sélection
         </Button>
@@ -45,14 +66,16 @@ export default function DeleguerPage() {
               Nouvelle délégation: {currentTallyDelegationType}
             </CardTitle>
             <CardDescription>
-              Veuillez remplir le formulaire ci-dessous pour initier la délégation.
+              {currentTallyDelegationType === "PER" 
+                ? "Veuillez remplir le formulaire ci-dessous pour initier la délégation."
+                : "Configuration du formulaire requise."}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <iframe
-              src={TALLY_EMBED_URL}
+              src={currentTallyEmbedUrl}
               width="100%"
-              style={{ minHeight: '750px', border: 'none' }}
+              style={{ minHeight: '750px', border: 'none', borderRadius: '0 0 0.5rem 0.5rem' }}
               title={`Formulaire de délégation: ${currentTallyDelegationType}`}
               allowFullScreen
             >
