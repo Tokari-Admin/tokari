@@ -121,10 +121,11 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
 
   const watchHasCoSubscriber = form.watch('hasCoSubscriber');
   const watchScheduledPaymentAmount = form.watch('scheduledPaymentAmount');
-  const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
-  const watchScheduledPaymentSpecificDate = form.watch('scheduledPaymentSpecificDate');
   const watchBeneficiaryClause = form.watch('beneficiaryClause');
   const watchAssetAllocationChoice = form.watch('assetAllocationChoice');
+  const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
+  const watchScheduledPaymentSpecificDate = form.watch('scheduledPaymentSpecificDate');
+
 
   async function onSubmit(values: AssuranceVieFormValues) {
     if (!user) {
@@ -296,95 +297,87 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 </FormItem>
               )}
             />
-
+            
             {Number(watchScheduledPaymentAmount) > 0 && (
-              <div className="space-y-4 rounded-md border p-4 shadow-sm">
-                 <FormLabel>Date de prélèvement du versement programmé *</FormLabel>
-                <FormField
-                  control={form.control}
-                  name="scheduledPaymentDebitDay"
-                  render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={(value) => {
-                            field.onChange(value);
-                            if (value !== "Specific") {
-                              form.setValue('scheduledPaymentSpecificDate', undefined);
-                              setIsDatePickerOpen(false);
-                            }
-                          }}
-                          value={field.value}
-                          className="flex flex-col space-y-1"
-                        >
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl><RadioGroupItem value="05" /></FormControl>
-                            <FormLabel className="font-normal">Le 05 du mois</FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl><RadioGroupItem value="15" /></FormControl>
-                            <FormLabel className="font-normal">Le 15 du mois</FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl><RadioGroupItem value="25" /></FormControl>
-                            <FormLabel className="font-normal">Le 25 du mois</FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                  control={form.control}
-                  name="scheduledPaymentSpecificDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                       <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground",
-                                watchScheduledPaymentDebitDay === "Specific" && "ring-2 ring-primary"
-                              )}
-                              onClick={() => {
-                                form.setValue('scheduledPaymentDebitDay', 'Specific');
+              <FormField
+                control={form.control}
+                name="scheduledPaymentDebitDay"
+                render={({ field }) => (
+                  <FormItem className="space-y-3 rounded-md border p-4 shadow-sm">
+                    <FormLabel>Date de prélèvement du versement programmé *</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          if (value !== "Specific") {
+                            form.setValue('scheduledPaymentSpecificDate', undefined);
+                            setIsDatePickerOpen(false); // Close picker if open
+                          }
+                        }}
+                        value={field.value}
+                        className="flex flex-col space-y-2"
+                      >
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl><RadioGroupItem value="05" /></FormControl>
+                          <FormLabel className="font-normal">Le 05 du mois</FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl><RadioGroupItem value="15" /></FormControl>
+                          <FormLabel className="font-normal">Le 15 du mois</FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl><RadioGroupItem value="25" /></FormControl>
+                          <FormLabel className="font-normal">Le 25 du mois</FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                           <FormControl>
+                            <RadioGroupItem 
+                              value="Specific" 
+                              checked={field.value === "Specific"}
+                              onClick={() => { // Keep this if you want the radio to be clickable to open
+                                if (field.value !== "Specific") field.onChange("Specific");
                                 setIsDatePickerOpen(true);
                               }}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Choisir une autre date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
+                            />
                           </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={(date) => {
-                              field.onChange(date);
-                              form.setValue('scheduledPaymentDebitDay', 'Specific');
-                              setIsDatePickerOpen(false);
-                            }}
-                            disabled={(date) =>
-                              date < new Date(new Date().setDate(new Date().getDate() -1)) // Disable past dates
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                          <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                            <PopoverTrigger asChild>
+                               <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !watchScheduledPaymentSpecificDate && "text-muted-foreground"
+                                )}
+                                onClick={() => {
+                                  form.setValue('scheduledPaymentDebitDay', 'Specific'); // Ensure radio state is 'Specific'
+                                  setIsDatePickerOpen(true);
+                                }}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {watchScheduledPaymentSpecificDate ? format(watchScheduledPaymentSpecificDate, "PPP") : <span>Choisir une autre date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={watchScheduledPaymentSpecificDate}
+                                onSelect={(date) => {
+                                  form.setValue('scheduledPaymentSpecificDate', date, { shouldValidate: true });
+                                  form.setValue('scheduledPaymentDebitDay', 'Specific', { shouldValidate: true });
+                                  setIsDatePickerOpen(false);
+                                }}
+                                disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1))}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </FormItem>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             )}
             
             <FormField
@@ -486,3 +479,4 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     </Card>
   );
 }
+
