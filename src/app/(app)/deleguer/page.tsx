@@ -2,15 +2,14 @@
 'use client';
 
 import { useState } from 'react';
-import { FilePlus, Settings2, ShieldCheck, TrendingUp, Building, GitCompareArrows, ChevronLeft, PlusCircle } from 'lucide-react';
+import { FilePlus, Settings2, ShieldCheck, TrendingUp, Building, GitCompareArrows, ChevronLeft } from 'lucide-react';
 import { DelegationCategoryCard } from '@/components/delegation/delegation-category-card';
 import { DelegationItemButton } from '@/components/delegation/delegation-item-button';
 import type { DelegationCategory, DelegationType } from '@/types';
-import { DelegationSubCategories, getCategoryForType } from '@/types';
+import { DelegationSubCategories } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DelegationModal } from '@/components/delegation/delegation-modal';
-import { useToast } from '@/hooks/use-toast';
+// import { useToast } from '@/hooks/use-toast'; // Kept in case of future use or for the placeholder
 
 const categoryIcons = {
   Souscription: <FilePlus className="h-8 w-8" />,
@@ -36,10 +35,7 @@ const TALLY_URLS: Partial<Record<DelegationType, string>> = {
 export default function DeleguerPage() {
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
   const [currentTallyEmbedUrl, setCurrentTallyEmbedUrl] = useState<string | null>(null);
-  
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedDelegationTypeForModal, setSelectedDelegationTypeForModal] = useState<DelegationType | null>(null);
-  const { toast } = useToast();
+  // const { toast } = useToast(); // Kept in case of future use
 
   const handleItemClick = (itemType: DelegationType) => {
     setCurrentTallyDelegationType(itemType);
@@ -58,11 +54,6 @@ export default function DeleguerPage() {
         </body>`;
       setCurrentTallyEmbedUrl(`data:text/html,${encodeURIComponent(placeholderHtml)}`);
     }
-  };
-
-  const handleOpenModalForTally = (type: DelegationType) => {
-    setSelectedDelegationTypeForModal(type);
-    setIsModalOpen(true);
   };
 
   if (currentTallyDelegationType && currentTallyEmbedUrl) {
@@ -86,7 +77,7 @@ export default function DeleguerPage() {
             </CardTitle>
             <CardDescription>
               {TALLY_URLS[currentTallyDelegationType]
-                ? "Veuillez remplir le formulaire Tally ci-dessous. Une fois soumis, vous pouvez enregistrer manuellement les détails clés."
+                ? "Veuillez remplir le formulaire Tally ci-dessous. Une fois la demande de délégation envoyée, celle-ci sera traitée."
                 : "Configuration du formulaire Tally pour ce type d'opération requise."}
             </CardDescription>
           </CardHeader>
@@ -100,34 +91,9 @@ export default function DeleguerPage() {
             >
               Chargement du formulaire...
             </iframe>
-             <Button
-              onClick={() => handleOpenModalForTally(currentTallyDelegationType!)}
-              className="w-full sm:w-auto"
-              variant="outline"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Manually Record this Operation in &quot;Mes Opérations&quot;
-            </Button>
+            {/* Manual recording button and modal logic removed */}
           </CardContent>
         </Card>
-
-        {selectedDelegationTypeForModal && (
-          <DelegationModal
-            isOpen={isModalOpen}
-            onOpenChange={(open) => {
-              setIsModalOpen(open);
-              if (!open) setSelectedDelegationTypeForModal(null);
-            }}
-            delegationType={selectedDelegationTypeForModal}
-            delegationCategory={getCategoryForType(selectedDelegationTypeForModal)!}
-            onSuccess={() => {
-              toast({
-                title: "Operation Recorded",
-                description: `The operation ${selectedDelegationTypeForModal} has been recorded. You can view it in "Mes Opérations".`,
-              });
-            }}
-          />
-        )}
       </div>
     );
   }
@@ -162,23 +128,7 @@ export default function DeleguerPage() {
           </DelegationCategoryCard>
         ))}
       </div>
-      {selectedDelegationTypeForModal && (
-          <DelegationModal
-            isOpen={isModalOpen}
-            onOpenChange={(open) => {
-              setIsModalOpen(open);
-              if (!open) setSelectedDelegationTypeForModal(null);
-            }}
-            delegationType={selectedDelegationTypeForModal}
-            delegationCategory={getCategoryForType(selectedDelegationTypeForModal)!}
-            onSuccess={() => {
-               toast({
-                title: "Operation Recorded",
-                description: `The operation for ${selectedDelegationTypeForModal} has been recorded. You can view it in "Mes Opérations".`,
-              });
-            }}
-          />
-        )}
+      {/* Modal instance removed */}
     </div>
   );
 }
