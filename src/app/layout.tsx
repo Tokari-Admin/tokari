@@ -12,8 +12,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: 'Deleg8 - Wealth Management Reimagined',
-  description: 'Delegate client tasks efficiently with Deleg8. SaaS for modern wealth managers.',
+  title: 'Tokari - Wealth Management Reimagined',
+  description: 'Delegate client tasks efficiently with Tokari. SaaS for modern wealth managers.',
 };
 
 export default function RootLayout({

@@ -9,10 +9,10 @@ export default function SignupPage() {
         <div className="text-center">
            <AppLogo className="mx-auto h-12 w-auto text-primary" />
           <h2 className="mt-6 text-center font-headline text-3xl font-extrabold text-foreground">
-            Create your Deleg8 account
+            Create your Tokari account
           </h2>
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            Join Deleg8 and streamline your wealth management tasks.
+            Join Tokari and streamline your wealth management tasks.
           </p>
         </div>
         <SignupForm />

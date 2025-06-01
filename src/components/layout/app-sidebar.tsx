@@ -68,7 +68,7 @@ export function AppSidebar() {
         {state === "expanded" || isMobile ? (
           <AppLogo className="h-8 text-primary" />
         ) : (
-           <Link href="/deleguer" aria-label="Deleg8 Home">
+           <Link href="/deleguer" aria-label="Tokari Home">
             <Home className="h-7 w-7 text-primary" />
            </Link>
         )}

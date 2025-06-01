@@ -9,7 +9,7 @@ export default function LoginPage() {
         <div className="text-center">
           <AppLogo className="mx-auto h-12 w-auto text-primary" />
           <h2 className="mt-6 text-center font-headline text-3xl font-extrabold text-foreground">
-            Sign in to Deleg8
+            Sign in to Tokari
           </h2>
           <p className="mt-2 text-center text-sm text-muted-foreground">
             Manage your client delegations with ease.

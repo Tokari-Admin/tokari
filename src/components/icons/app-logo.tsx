@@ -5,7 +5,7 @@ export default function AppLogo(props: SVGProps<SVGSVGElement>) {
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 200 50"
-      aria-label="Deleg8 Logo"
+      aria-label="Tokari Logo"
       {...props}
     >
       <text
@@ -16,8 +16,8 @@ export default function AppLogo(props: SVGProps<SVGSVGElement>) {
         fontWeight="bold"
         fill="currentColor"
       >
-        Deleg
-        <tspan fill="hsl(var(--accent))">8</tspan>
+        Tokar
+        <tspan fill="hsl(var(--accent))">i</tspan>
       </text>
     </svg>
   );
