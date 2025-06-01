@@ -26,18 +26,17 @@ const itemIcons: Record<DelegationType, React.ReactNode> = {
 // Map of DelegationType to Tally Form Embed URL
 const TALLY_URLS: Partial<Record<DelegationType, string>> = {
   "PER": "https://tally.so/embed/mB2Wg5?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
-  // This was the one previously assigned to NEW_TALLY_URL_TO_ASSIGN, let's assume it's for Assurance Vie for now
   // The user needs to specify which type this URL is for:
   // "Assurance Vie": "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1", 
   "SCPI Nue Propriété": "https://tally.so/embed/wAjXpD?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
+  "SCPI Pleine Propriété": "https://tally.so/embed/nrkZ5R?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1",
   // Add other specific Tally form URLs here as they become known
 };
 
 // The user should specify which DelegationType this new URL is for.
 // For example, if it's for "Assurance Vie":
 // TALLY_URLS["Assurance Vie"] = "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
-// Or if it's for another type like "SCPI Pleine Propriété":
-// TALLY_URLS["SCPI Pleine Propriété"] = "https://tally.so/embed/mKa4yX?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
+
 
 export default function DeleguerPage() {
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
