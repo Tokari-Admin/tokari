@@ -69,26 +69,30 @@ export function AutreTacheForm({ onFormSubmitSuccess, onCancel }: AutreTacheForm
     setIsLoading(true);
 
     try {
+      // Initialize with required fields that Zod ensures are present
       const delegationDetails: { [key: string]: any } = {
         taskTitle: values.taskTitle,
         taskDescription: values.taskDescription,
       };
 
-      if (values.dueDate) {
-        delegationDetails.dueDate = values.dueDate; // Firestore handles Date objects
+      // Conditionally add dueDate if it's a valid Date object
+      if (values.dueDate instanceof Date) {
+        delegationDetails.dueDate = values.dueDate;
       }
       
+      // Base data object for Firestore, including only guaranteed fields initially
       const delegationDataToSend: { [key: string]: any } = {
         userId: user.uid,
         type: "Tâche Ad Hoc",
         category: "Autres Tâches" as DelegationCategory,
         clientName: values.clientName,
         status: 'En attente' as DelegationStatus,
-        details: delegationDetails,
+        details: delegationDetails, // Add the populated details object
         createdDate: serverTimestamp(),
         lastModifiedDate: serverTimestamp(),
       };
 
+      // Conditionally add notes to the top-level object if it's a non-empty string
       if (values.notes && values.notes.trim() !== "") {
         delegationDataToSend.notes = values.notes.trim();
       }
