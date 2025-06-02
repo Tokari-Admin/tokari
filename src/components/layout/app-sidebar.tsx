@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -8,9 +9,8 @@ import {
   UserCircle,
   LogOut,
   UserCog,
-  PanelLeft,
-  Lightbulb,
   Home,
+  KanbanSquare, // Added for Task Board
 } from "lucide-react";
 import {
   Sidebar,
@@ -21,7 +21,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenuSkeleton,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import AppLogo from "@/components/icons/app-logo";
@@ -43,6 +42,7 @@ import { Skeleton } from "../ui/skeleton";
 const navItems = [
   { href: "/deleguer", icon: Briefcase, label: "Déléguer" },
   { href: "/mes-operations", icon: History, label: "Mes Opérations" },
+  { href: "/task-board", icon: KanbanSquare, label: "Tableau de Tâches" }, // New Task Board link
 ];
 
 export function AppSidebar() {
@@ -77,6 +77,7 @@ export function AppSidebar() {
         <SidebarMenu>
           {loading && (
             <>
+              <SidebarMenuSkeleton showIcon />
               <SidebarMenuSkeleton showIcon />
               <SidebarMenuSkeleton showIcon />
             </>
