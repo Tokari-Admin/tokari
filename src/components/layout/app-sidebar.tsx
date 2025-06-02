@@ -43,7 +43,6 @@ import { Skeleton } from "../ui/skeleton";
 const navItems = [
   { href: "/deleguer", icon: Briefcase, label: "Déléguer" },
   { href: "/mes-operations", icon: History, label: "Mes Opérations" },
-  { href: "/ai-recommendation", icon: Lightbulb, label: "AI Recommandation" },
 ];
 
 export function AppSidebar() {
@@ -78,7 +77,6 @@ export function AppSidebar() {
         <SidebarMenu>
           {loading && (
             <>
-              <SidebarMenuSkeleton showIcon />
               <SidebarMenuSkeleton showIcon />
               <SidebarMenuSkeleton showIcon />
             </>
