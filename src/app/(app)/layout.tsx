@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ReactNode } from 'react';
@@ -7,6 +8,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Loader2 } from 'lucide-react';
+import { TallyProfilePopupHandler } from '@/components/auth/tally-profile-popup-handler';
+
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -46,6 +49,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </SidebarInset>
+      <TallyProfilePopupHandler />
     </SidebarProvider>
   );
 }

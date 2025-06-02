@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -47,16 +48,16 @@ export function SignupForm() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       await updateProfile(userCredential.user, { displayName: values.displayName });
       
-      // Optionally, create a user document in Firestore
       await setDoc(doc(db, "users", userCredential.user.uid), {
         uid: userCredential.user.uid,
         email: values.email,
         displayName: values.displayName,
         createdAt: new Date().toISOString(),
+        hasCompletedTallyProfile: false, // Initialize Tally profile completion status
       });
 
       toast({ title: 'Signup Successful', description: 'Your account has been created.' });
-      router.push('/deleguer');
+      router.push('/deleguer'); // Navigate to a page where AppLayout will pick up the new user
     } catch (error: any) {
       console.error('Signup error:', error);
       toast({
