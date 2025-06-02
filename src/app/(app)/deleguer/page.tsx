@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // Added import
 import { FilePlus, Settings2, ShieldCheck, TrendingUp, Building, GitCompareArrows, ChevronLeft } from 'lucide-react';
 import { DelegationCategoryCard } from '@/components/delegation/delegation-category-card';
 import { DelegationItemButton } from '@/components/delegation/delegation-item-button';
@@ -11,9 +10,6 @@ import { DelegationSubCategories, getCategoryForType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import { AssuranceVieForm } from '@/components/delegation/assurance-vie-form';
-import { useToast } from '@/hooks/use-toast';
-
 
 const categoryIcons = {
   Souscription: <FilePlus className="h-8 w-8" />,
@@ -30,7 +26,7 @@ const itemIcons: Record<DelegationType, React.ReactNode> = {
 
 const TALLY_URLS: Partial<Record<DelegationType, string>> = {
   "PER": "https://tally.so/embed/mB2Wg5",
-  // "Assurance Vie": "https://tally.so/embed/mKa4yX", // Commented out to use native form
+  "Assurance Vie": "https://tally.so/embed/mKa4yX", // Using Tally embed
   "SCPI Nue Propriété": "https://tally.so/embed/wAjXpD",
   "SCPI Pleine Propriété": "https://tally.so/embed/nrkZ5R",
   "Arbitrage": "https://tally.so/embed/mOoN7R",
@@ -40,23 +36,11 @@ const TALLY_DEFAULT_PARAMS = "alignLeft=1&hideTitle=1&transparentBackground=1&dy
 
 export default function DeleguerPage() {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const router = useRouter(); // Added router instance
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
   const [currentTallyEmbedUrl, setCurrentTallyEmbedUrl] = useState<string | null>(null);
-  const [showAssuranceVieNativeForm, setShowAssuranceVieNativeForm] = useState(false);
-
 
   const handleItemClick = (itemType: DelegationType) => {
-    if (itemType === "Assurance Vie") {
-      setShowAssuranceVieNativeForm(true);
-      setCurrentTallyDelegationType(null);
-      setCurrentTallyEmbedUrl(null);
-      return;
-    }
-
     setCurrentTallyDelegationType(itemType);
-    setShowAssuranceVieNativeForm(false);
     const baseEmbedUrl = TALLY_URLS[itemType];
 
     if (baseEmbedUrl && user) {
@@ -84,37 +68,7 @@ export default function DeleguerPage() {
   const resetSelection = () => {
     setCurrentTallyDelegationType(null);
     setCurrentTallyEmbedUrl(null);
-    setShowAssuranceVieNativeForm(false);
   };
-
-  const handleNativeFormSuccess = () => {
-    setShowAssuranceVieNativeForm(false);
-    toast({
-      title: "Opération Enregistrée",
-      description: "L'opération Assurance Vie a été enregistrée. Vous pouvez la consulter dans 'Mes Opérations'.",
-    });
-    router.push('/mes-operations'); // Navigate to Mes Opérations page
-  };
-
-
-  if (showAssuranceVieNativeForm) {
-    return (
-      <div className="container mx-auto py-8 px-4 md:px-0">
-        <Button
-          variant="outline"
-          onClick={resetSelection}
-          className="mb-6 flex items-center"
-        >
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Retour à la sélection
-        </Button>
-        <AssuranceVieForm 
-          onFormSubmitSuccess={handleNativeFormSuccess} 
-          onCancel={resetSelection} 
-        />
-      </div>
-    );
-  }
 
   if (currentTallyDelegationType && currentTallyEmbedUrl) {
     return (
@@ -188,4 +142,3 @@ export default function DeleguerPage() {
     </div>
   );
 }
-
