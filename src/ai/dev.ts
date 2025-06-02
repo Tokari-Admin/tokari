@@ -1,4 +1,5 @@
 import { config } from 'dotenv';
 config();
 
-// recommend-delegation-workflow.ts has been removed as it's not part of the MVP.
+// The recommend-delegation-workflow.ts import and related code have been removed
+// as the AI Recommendation feature is not part of the MVP.
