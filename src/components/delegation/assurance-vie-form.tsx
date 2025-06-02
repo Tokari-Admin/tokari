@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -136,17 +137,15 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     try {
       const clientFullName = `${values.subscriberFirstName} ${values.subscriberLastName}`;
       
-      // Initialize details with fields that are always present or booleans
       const delegationDetails: { [key: string]: any } = {
         subscriberFirstName: values.subscriberFirstName,
         subscriberLastName: values.subscriberLastName,
-        hasCoSubscriber: values.hasCoSubscriber, // boolean, fine as is
-        contractName: values.contractName, // enum, required by Zod
-        beneficiaryClause: values.beneficiaryClause, // enum, required by Zod
-        assetAllocationChoice: values.assetAllocationChoice, // enum, required by Zod
+        hasCoSubscriber: values.hasCoSubscriber,
+        contractName: values.contractName,
+        beneficiaryClause: values.beneficiaryClause,
+        assetAllocationChoice: values.assetAllocationChoice,
       };
 
-      // Conditionally add co-subscriber details
       if (values.hasCoSubscriber) {
         if (values.coSubscriberLastName && values.coSubscriberLastName.trim() !== "") {
           delegationDetails.coSubscriberLastName = values.coSubscriberLastName.trim();
@@ -156,64 +155,80 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
         }
       }
 
-      // Conditionally add initial payment amount
       if (values.initialPaymentAmount !== '' && values.initialPaymentAmount !== undefined) {
-        const numericInitialPayment = Number(values.initialPaymentAmount); // Number('') is 0
+        const numericInitialPayment = Number(values.initialPaymentAmount);
         if (!isNaN(numericInitialPayment)) {
           delegationDetails.initialPaymentAmount = numericInitialPayment;
         }
       }
       
-      // Conditionally add scheduled payment amount and its details
       const numericScheduledPayment = (values.scheduledPaymentAmount !== '' && values.scheduledPaymentAmount !== undefined) 
-                                       ? Number(values.scheduledPaymentAmount) // Number('') is 0
-                                       : NaN; // Use NaN if truly not a number string initially
+                                       ? Number(values.scheduledPaymentAmount)
+                                       : NaN;
 
-      if (!isNaN(numericScheduledPayment)) { // If it's a valid number (0 or more)
+      if (!isNaN(numericScheduledPayment)) {
         delegationDetails.scheduledPaymentAmount = numericScheduledPayment;
-        // Only add debit day and specific date if amount is greater than 0
         if (numericScheduledPayment > 0) {
-          if (values.scheduledPaymentDebitDay) { // Zod ensures this is present if numericScheduledPayment > 0
+          if (values.scheduledPaymentDebitDay) { 
               delegationDetails.scheduledPaymentDebitDay = values.scheduledPaymentDebitDay;
-              if (values.scheduledPaymentDebitDay === "Specific" && values.scheduledPaymentSpecificDate) { // Zod ensures this is present if "Specific"
-                  delegationDetails.scheduledPaymentSpecificDate = values.scheduledPaymentSpecificDate; // This is a Date object
+              if (values.scheduledPaymentDebitDay === "Specific" && values.scheduledPaymentSpecificDate instanceof Date) {
+                  delegationDetails.scheduledPaymentSpecificDate = values.scheduledPaymentSpecificDate;
               }
           }
         }
       }
       
-      // Conditionally add custom beneficiary clause
       if (values.beneficiaryClause === "Clause bénéficiaire libre") {
         if (values.customBeneficiaryClause && values.customBeneficiaryClause.trim() !== "") {
             delegationDetails.customBeneficiaryClause = values.customBeneficiaryClause.trim();
         }
       }
       
-      // Conditionally add custom asset allocation
       if (values.assetAllocationChoice === "Importer une autre allocation d'actifs") {
         if (values.customAssetAllocation && values.customAssetAllocation.trim() !== "") {
             delegationDetails.customAssetAllocation = values.customAssetAllocation.trim();
         }
       }
 
-      // Base data object for Firestore
       const delegationDataToSend: { [key: string]: any } = {
         userId: user.uid,
         type: "Assurance Vie",
         category: "Souscription" as DelegationCategory,
         clientName: clientFullName,
         status: 'En attente' as DelegationStatus,
-        details: delegationDetails, // Add the populated details object
+        details: delegationDetails,
         createdDate: serverTimestamp(),
         lastModifiedDate: serverTimestamp(),
       };
       
-      // Conditionally add notes to the top-level object
       if (values.notes && values.notes.trim() !== "") {
         delegationDataToSend.notes = values.notes.trim();
       }
       
-      await addDoc(collection(db, 'delegations'), delegationDataToSend);
+      // Create a clean object for Firestore, ensuring no undefined values are passed
+      const cleanFirestoreData: { [key: string]: any } = {};
+      for (const key in delegationDataToSend) {
+        if (Object.prototype.hasOwnProperty.call(delegationDataToSend, key) && delegationDataToSend[key] !== undefined) {
+          if (key === 'details' && typeof delegationDataToSend.details === 'object' && delegationDataToSend.details !== null) {
+            cleanFirestoreData.details = {};
+            for (const detailKey in delegationDataToSend.details) {
+              if (Object.prototype.hasOwnProperty.call(delegationDataToSend.details, detailKey) && delegationDataToSend.details[detailKey] !== undefined) {
+                cleanFirestoreData.details[detailKey] = delegationDataToSend.details[detailKey];
+              }
+            }
+             // Ensure details object is not added if it becomes empty after cleaning, if desired
+            if (Object.keys(cleanFirestoreData.details).length === 0) {
+                // If an empty details object is not desired, you can delete it or handle it:
+                // delete cleanFirestoreData.details; 
+                // For now, Firestore accepts empty maps, so an empty details object is fine.
+            }
+          } else {
+            cleanFirestoreData[key] = delegationDataToSend[key];
+          }
+        }
+      }
+      
+      await addDoc(collection(db, 'delegations'), cleanFirestoreData);
       toast({ title: 'Délégation "Assurance Vie" Créée', description: `Souscription pour ${clientFullName} enregistrée.` });
       form.reset();
       onFormSubmitSuccess();
@@ -225,7 +240,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     }
   }
   
-  const numericWatchedScheduledPaymentAmount = Number(watchScheduledPaymentAmount); // Number('') is 0
+  const numericWatchedScheduledPaymentAmount = Number(watchScheduledPaymentAmount);
 
 
   return (
@@ -385,7 +400,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                                     value="Specific"
                                     id="debitDaySpecificRadio"
                                     checked={radioField.value === "Specific"}
-                                    onClick={() => { // Ensure radio is checked if label is clicked to open popover
+                                    onClick={() => { 
                                         if (radioField.value !== "Specific") { radioField.onChange("Specific"); }
                                         setIsDatePickerOpen(true);
                                     }}
@@ -418,9 +433,9 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                                     const target = e.target as HTMLElement;
                                     if (target.closest('label[for="debitDaySpecificRadio"]') || 
                                         target.closest('[data-radix-popover-content]') || 
-                                        target.closest('button[name="previous-month"]') || // More specific selectors
+                                        target.closest('button[name="previous-month"]') || 
                                         target.closest('button[name="next-month"]') ||
-                                        target.closest('.rdp-nav_button_next') || // for react-day-picker v8
+                                        target.closest('.rdp-nav_button_next') || 
                                         target.closest('.rdp-nav_button_previous') 
                                     ) {
                                       e.preventDefault(); 

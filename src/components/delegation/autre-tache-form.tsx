@@ -69,35 +69,54 @@ export function AutreTacheForm({ onFormSubmitSuccess, onCancel }: AutreTacheForm
     setIsLoading(true);
 
     try {
-      // Initialize with required fields that Zod ensures are present
       const delegationDetails: { [key: string]: any } = {
         taskTitle: values.taskTitle,
         taskDescription: values.taskDescription,
       };
 
-      // Conditionally add dueDate if it's a valid Date object
       if (values.dueDate instanceof Date) {
         delegationDetails.dueDate = values.dueDate;
       }
       
-      // Base data object for Firestore, including only guaranteed fields initially
       const delegationDataToSend: { [key: string]: any } = {
         userId: user.uid,
         type: "Tâche Ad Hoc",
         category: "Autres Tâches" as DelegationCategory,
         clientName: values.clientName,
         status: 'En attente' as DelegationStatus,
-        details: delegationDetails, // Add the populated details object
+        details: delegationDetails, 
         createdDate: serverTimestamp(),
         lastModifiedDate: serverTimestamp(),
       };
 
-      // Conditionally add notes to the top-level object if it's a non-empty string
       if (values.notes && values.notes.trim() !== "") {
         delegationDataToSend.notes = values.notes.trim();
       }
       
-      await addDoc(collection(db, 'delegations'), delegationDataToSend);
+      // Create a clean object for Firestore, ensuring no undefined values are passed
+      const cleanFirestoreData: { [key: string]: any } = {};
+      for (const key in delegationDataToSend) {
+        if (Object.prototype.hasOwnProperty.call(delegationDataToSend, key) && delegationDataToSend[key] !== undefined) {
+          if (key === 'details' && typeof delegationDataToSend.details === 'object' && delegationDataToSend.details !== null) {
+            cleanFirestoreData.details = {};
+            for (const detailKey in delegationDataToSend.details) {
+              if (Object.prototype.hasOwnProperty.call(delegationDataToSend.details, detailKey) && delegationDataToSend.details[detailKey] !== undefined) {
+                cleanFirestoreData.details[detailKey] = delegationDataToSend.details[detailKey];
+              }
+            }
+             // Ensure details object is not added if it becomes empty after cleaning, if desired
+            if (Object.keys(cleanFirestoreData.details).length === 0) {
+                // If an empty details object is not desired, you can delete it or handle it:
+                // delete cleanFirestoreData.details; 
+                // For now, Firestore accepts empty maps, so an empty details object is fine.
+            }
+          } else {
+            cleanFirestoreData[key] = delegationDataToSend[key];
+          }
+        }
+      }
+
+      await addDoc(collection(db, 'delegations'), cleanFirestoreData);
       toast({ title: 'Tâche Ad Hoc Créée', description: `Tâche "${values.taskTitle}" pour ${values.clientName} enregistrée.` });
       form.reset();
       onFormSubmitSuccess();
