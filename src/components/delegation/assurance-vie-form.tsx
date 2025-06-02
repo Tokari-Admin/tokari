@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -69,8 +68,8 @@ const formSchema = z.object({
     }
   }
   
-  const scheduledPaymentAmountNumeric = (data.scheduledPaymentAmount !== '' && data.scheduledPaymentAmount !== undefined) ? Number(data.scheduledPaymentAmount) : 0;
-  if (scheduledPaymentAmountNumeric > 0) {
+  const scheduledPaymentAmountNumeric = (data.scheduledPaymentAmount !== '' && data.scheduledPaymentAmount !== undefined) ? Number(data.scheduledPaymentAmount) : NaN;
+  if (!isNaN(scheduledPaymentAmountNumeric) && scheduledPaymentAmountNumeric > 0) {
     if (!data.scheduledPaymentDebitDay) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date de prélèvement est requise si un versement programmé est saisi.", path: ['scheduledPaymentDebitDay'] });
     }
@@ -137,15 +136,17 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     try {
       const clientFullName = `${values.subscriberFirstName} ${values.subscriberLastName}`;
       
+      // Initialize details with fields that are always present or booleans
       const delegationDetails: { [key: string]: any } = {
         subscriberFirstName: values.subscriberFirstName,
         subscriberLastName: values.subscriberLastName,
-        hasCoSubscriber: values.hasCoSubscriber,
-        contractName: values.contractName,
-        beneficiaryClause: values.beneficiaryClause,
-        assetAllocationChoice: values.assetAllocationChoice,
+        hasCoSubscriber: values.hasCoSubscriber, // boolean, fine as is
+        contractName: values.contractName, // enum, required by Zod
+        beneficiaryClause: values.beneficiaryClause, // enum, required by Zod
+        assetAllocationChoice: values.assetAllocationChoice, // enum, required by Zod
       };
 
+      // Conditionally add co-subscriber details
       if (values.hasCoSubscriber) {
         if (values.coSubscriberLastName && values.coSubscriberLastName.trim() !== "") {
           delegationDetails.coSubscriberLastName = values.coSubscriberLastName.trim();
@@ -155,36 +156,47 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
         }
       }
 
+      // Conditionally add initial payment amount
       if (values.initialPaymentAmount !== '' && values.initialPaymentAmount !== undefined) {
-        const numericInitialPayment = Number(values.initialPaymentAmount);
-        if(!isNaN(numericInitialPayment)) {
+        const numericInitialPayment = Number(values.initialPaymentAmount); // Number('') is 0
+        if (!isNaN(numericInitialPayment)) {
           delegationDetails.initialPaymentAmount = numericInitialPayment;
         }
       }
       
-      const numericScheduledPayment = (values.scheduledPaymentAmount !== '' && values.scheduledPaymentAmount !== undefined) ? Number(values.scheduledPaymentAmount) : undefined;
+      // Conditionally add scheduled payment amount and its details
+      const numericScheduledPayment = (values.scheduledPaymentAmount !== '' && values.scheduledPaymentAmount !== undefined) 
+                                       ? Number(values.scheduledPaymentAmount) // Number('') is 0
+                                       : NaN; // Use NaN if truly not a number string initially
 
-      if (numericScheduledPayment !== undefined && !isNaN(numericScheduledPayment) && numericScheduledPayment > 0) {
+      if (!isNaN(numericScheduledPayment)) { // If it's a valid number (0 or more)
         delegationDetails.scheduledPaymentAmount = numericScheduledPayment;
-        if (values.scheduledPaymentDebitDay) { 
-            delegationDetails.scheduledPaymentDebitDay = values.scheduledPaymentDebitDay;
-            if (values.scheduledPaymentDebitDay === "Specific" && values.scheduledPaymentSpecificDate) { 
-                delegationDetails.scheduledPaymentSpecificDate = values.scheduledPaymentSpecificDate; 
-            }
+        // Only add debit day and specific date if amount is greater than 0
+        if (numericScheduledPayment > 0) {
+          if (values.scheduledPaymentDebitDay) { // Zod ensures this is present if numericScheduledPayment > 0
+              delegationDetails.scheduledPaymentDebitDay = values.scheduledPaymentDebitDay;
+              if (values.scheduledPaymentDebitDay === "Specific" && values.scheduledPaymentSpecificDate) { // Zod ensures this is present if "Specific"
+                  delegationDetails.scheduledPaymentSpecificDate = values.scheduledPaymentSpecificDate; // This is a Date object
+              }
+          }
         }
-      } else if (numericScheduledPayment !== undefined && !isNaN(numericScheduledPayment) && numericScheduledPayment === 0) {
-         delegationDetails.scheduledPaymentAmount = 0;
       }
       
-      if (values.beneficiaryClause === "Clause bénéficiaire libre" && values.customBeneficiaryClause && values.customBeneficiaryClause.trim() !== "") {
-          delegationDetails.customBeneficiaryClause = values.customBeneficiaryClause.trim();
+      // Conditionally add custom beneficiary clause
+      if (values.beneficiaryClause === "Clause bénéficiaire libre") {
+        if (values.customBeneficiaryClause && values.customBeneficiaryClause.trim() !== "") {
+            delegationDetails.customBeneficiaryClause = values.customBeneficiaryClause.trim();
+        }
       }
       
-      if (values.assetAllocationChoice === "Importer une autre allocation d'actifs" && values.customAssetAllocation && values.customAssetAllocation.trim() !== "") {
-          delegationDetails.customAssetAllocation = values.customAssetAllocation.trim();
+      // Conditionally add custom asset allocation
+      if (values.assetAllocationChoice === "Importer une autre allocation d'actifs") {
+        if (values.customAssetAllocation && values.customAssetAllocation.trim() !== "") {
+            delegationDetails.customAssetAllocation = values.customAssetAllocation.trim();
+        }
       }
 
-      // Base data object without any optional top-level fields yet
+      // Base data object for Firestore
       const delegationDataToSend: { [key: string]: any } = {
         userId: user.uid,
         type: "Assurance Vie",
@@ -196,11 +208,11 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
         lastModifiedDate: serverTimestamp(),
       };
       
-      // Conditionally add optional top-level fields like 'notes'
+      // Conditionally add notes to the top-level object
       if (values.notes && values.notes.trim() !== "") {
         delegationDataToSend.notes = values.notes.trim();
       }
-
+      
       await addDoc(collection(db, 'delegations'), delegationDataToSend);
       toast({ title: 'Délégation "Assurance Vie" Créée', description: `Souscription pour ${clientFullName} enregistrée.` });
       form.reset();
@@ -213,7 +225,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     }
   }
   
-  const numericWatchedScheduledPaymentAmount = Number(watchScheduledPaymentAmount);
+  const numericWatchedScheduledPaymentAmount = Number(watchScheduledPaymentAmount); // Number('') is 0
 
 
   return (
@@ -343,97 +355,94 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 render={({ field: radioField }) => ( 
                   <FormItem className="space-y-3 rounded-md border p-4 shadow-sm">
                     <FormLabel>Date de prélèvement du versement programmé *</FormLabel>
-                    <RadioGroup
-                      onValueChange={(value) => {
-                        radioField.onChange(value as "05" | "15" | "25" | "Specific");
-                        if (value !== "Specific") {
-                          form.setValue('scheduledPaymentSpecificDate', undefined, { shouldValidate: true });
-                        }
-                      }}
-                      value={radioField.value}
-                      className="flex flex-col space-y-1"
-                    >
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl><RadioGroupItem value="05" id="debitDay05" /></FormControl>
-                        <FormLabel htmlFor="debitDay05" className="font-normal">Le 05 du mois</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl><RadioGroupItem value="15" id="debitDay15" /></FormControl>
-                        <FormLabel htmlFor="debitDay15" className="font-normal">Le 15 du mois</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl><RadioGroupItem value="25" id="debitDay25" /></FormControl>
-                        <FormLabel htmlFor="debitDay25" className="font-normal">Le 25 du mois</FormLabel>
-                      </FormItem>
-                      
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                         <FormControl>
-                           <RadioGroupItem
-                              value="Specific"
-                              id="debitDaySpecificRadio"
-                              checked={radioField.value === "Specific"}
-                               onClick={() => {
-                                // This click on RadioGroupItem should ensure it's checked
-                                if (radioField.value !== "Specific") {
-                                  radioField.onChange("Specific");
-                                }
-                                setIsDatePickerOpen(true); // Open popover
-                              }}
-                           />
-                         </FormControl>
-                         <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                          <PopoverTrigger asChild>
-                              <Label
-                                htmlFor="debitDaySpecificRadio" 
-                                className={cn(
-                                    "font-normal cursor-pointer flex-grow flex items-center rounded-md border border-input bg-transparent hover:bg-accent hover:text-accent-foreground px-3 py-2 text-sm h-10",
-                                    radioField.value === "Specific" && "bg-accent text-accent-foreground",
-                                    radioField.value === "Specific" && !form.getValues('scheduledPaymentSpecificDate') && "text-muted-foreground"
-                                )}
-                                onClick={(e) => {
-                                    // Ensure radio is checked if label is clicked to open popover
-                                    if (radioField.value !== "Specific") {
-                                        radioField.onChange("Specific");
+                    <FormControl>
+                        <RadioGroup
+                        onValueChange={(value) => {
+                            radioField.onChange(value as "05" | "15" | "25" | "Specific");
+                            if (value !== "Specific") {
+                            form.setValue('scheduledPaymentSpecificDate', undefined, { shouldValidate: true });
+                            }
+                        }}
+                        value={radioField.value}
+                        className="flex flex-col space-y-1"
+                        >
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl><RadioGroupItem value="05" id="debitDay05" /></FormControl>
+                            <FormLabel htmlFor="debitDay05" className="font-normal">Le 05 du mois</FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl><RadioGroupItem value="15" id="debitDay15" /></FormControl>
+                            <FormLabel htmlFor="debitDay15" className="font-normal">Le 15 du mois</FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl><RadioGroupItem value="25" id="debitDay25" /></FormControl>
+                            <FormLabel htmlFor="debitDay25" className="font-normal">Le 25 du mois</FormLabel>
+                        </FormItem>
+                        
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                                <RadioGroupItem
+                                    value="Specific"
+                                    id="debitDaySpecificRadio"
+                                    checked={radioField.value === "Specific"}
+                                    onClick={() => { // Ensure radio is checked if label is clicked to open popover
+                                        if (radioField.value !== "Specific") { radioField.onChange("Specific"); }
+                                        setIsDatePickerOpen(true);
+                                    }}
+                                />
+                            </FormControl>
+                            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                            <PopoverTrigger asChild>
+                                <Label
+                                    htmlFor="debitDaySpecificRadio" 
+                                    className={cn(
+                                        "font-normal cursor-pointer flex-grow flex items-center rounded-md border border-input bg-transparent hover:bg-accent hover:text-accent-foreground px-3 py-2 text-sm h-10",
+                                        radioField.value === "Specific" && "bg-accent text-accent-foreground",
+                                        radioField.value === "Specific" && !form.getValues('scheduledPaymentSpecificDate') && "text-muted-foreground"
+                                    )}
+                                    onClick={(e) => {
+                                        if (radioField.value !== "Specific") { radioField.onChange("Specific");}
+                                        setIsDatePickerOpen(true);
+                                    }}
+                                >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {radioField.value === "Specific" && form.getValues('scheduledPaymentSpecificDate')
+                                    ? format(form.getValues('scheduledPaymentSpecificDate')!, "PPP")
+                                    : "Choisir une autre date"}
+                                </Label>
+                            </PopoverTrigger>
+                            <PopoverContent
+                                className="w-auto p-0"
+                                align="start"
+                                onInteractOutside={(e) => {
+                                    const target = e.target as HTMLElement;
+                                    if (target.closest('label[for="debitDaySpecificRadio"]') || 
+                                        target.closest('[data-radix-popover-content]') || 
+                                        target.closest('button[name="previous-month"]') || // More specific selectors
+                                        target.closest('button[name="next-month"]') ||
+                                        target.closest('.rdp-nav_button_next') || // for react-day-picker v8
+                                        target.closest('.rdp-nav_button_previous') 
+                                    ) {
+                                      e.preventDefault(); 
                                     }
-                                    setIsDatePickerOpen(true);
                                 }}
-                              >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {radioField.value === "Specific" && form.getValues('scheduledPaymentSpecificDate')
-                                  ? format(form.getValues('scheduledPaymentSpecificDate')!, "PPP")
-                                  : "Choisir une autre date"}
-                              </Label>
-                          </PopoverTrigger>
-                          <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                               onInteractOutside={(e) => {
-                                const target = e.target as HTMLElement;
-                                // Check if the click is on the trigger label itself or within the popover/calendar
-                                if (target.closest('label[for="debitDaySpecificRadio"]') || target.closest('[data-radix-popover-content]') || target.closest('button[aria-label^="Previous month"], button[aria-label^="Next month"]')) {
-                                  e.preventDefault(); 
-                                } else {
-                                  // Allow closing if click is truly outside
-                                }
-                              }}
-                          >
-                              <Calendar
-                              mode="single"
-                              selected={form.getValues('scheduledPaymentSpecificDate')}
-                              onSelect={(date) => {
-                                  form.setValue('scheduledPaymentSpecificDate', date, { shouldValidate: true });
-                                  if (radioField.value !== "Specific") { // Ensure radio is checked
-                                    radioField.onChange("Specific"); 
-                                  }
-                                  setIsDatePickerOpen(false);
-                              }}
-                              disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1))}
-                              initialFocus
-                              />
-                          </PopoverContent>
-                          </Popover>
-                      </FormItem>
-                    </RadioGroup>
+                            >
+                                <Calendar
+                                mode="single"
+                                selected={form.getValues('scheduledPaymentSpecificDate')}
+                                onSelect={(date) => {
+                                    form.setValue('scheduledPaymentSpecificDate', date, { shouldValidate: true });
+                                    if (radioField.value !== "Specific") { radioField.onChange("Specific"); }
+                                    setIsDatePickerOpen(false);
+                                }}
+                                disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1))}
+                                initialFocus
+                                />
+                            </PopoverContent>
+                            </Popover>
+                        </FormItem>
+                        </RadioGroup>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -483,7 +492,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                   <FormLabel>Allocation d&apos;actifs (AT) *</FormLabel>
                   <FormControl>
                     <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col space-y-1">
-                      <FormItem className="flex items-center space-x-3 space-y-0">
+                      <FormItem className="flex items-center space-x-_3 space-y-0">
                         <FormControl><RadioGroupItem value="Utiliser l'allocation d'actifs que j'ai déjà importé" /></FormControl>
                         <FormLabel className="font-normal">Utiliser l&apos;allocation d&apos;actifs que j&apos;ai déjà importé</FormLabel>
                       </FormItem>
@@ -539,4 +548,3 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
     </Card>
   );
 }
-
