@@ -69,13 +69,13 @@ const formSchema = z.object({
     }
   }
   
-  const scheduledPaymentAmountValue = Number(data.scheduledPaymentAmount);
-
-  if (scheduledPaymentAmountValue > 0 && !data.scheduledPaymentDebitDay) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date de prélèvement est requise si un versement programmé est saisi.", path: ['scheduledPaymentDebitDay'] });
-  }
-  if (scheduledPaymentAmountValue > 0 && data.scheduledPaymentDebitDay === "Specific" && !data.scheduledPaymentSpecificDate) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez préciser la date spécifique de prélèvement.", path: ['scheduledPaymentSpecificDate'] });
+  if (data.scheduledPaymentAmount !== '' && Number(data.scheduledPaymentAmount) > 0) {
+    if (!data.scheduledPaymentDebitDay) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date de prélèvement est requise si un versement programmé est saisi.", path: ['scheduledPaymentDebitDay'] });
+    }
+    if (data.scheduledPaymentDebitDay === "Specific" && !data.scheduledPaymentSpecificDate) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Veuillez préciser la date spécifique de prélèvement.", path: ['scheduledPaymentSpecificDate'] });
+    }
   }
 
   if (data.beneficiaryClause === "Clause bénéficiaire libre" && (!data.customBeneficiaryClause || data.customBeneficiaryClause.trim() === "")) {
@@ -121,11 +121,12 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
   });
 
   const watchHasCoSubscriber = form.watch('hasCoSubscriber');
-  const watchScheduledPaymentAmount = form.watch('scheduledPaymentAmount');
   const watchBeneficiaryClause = form.watch('beneficiaryClause');
   const watchAssetAllocationChoice = form.watch('assetAllocationChoice');
-  const watchScheduledPaymentSpecificDate = form.watch('scheduledPaymentSpecificDate');
+  
+  const watchScheduledPaymentAmount = form.watch('scheduledPaymentAmount');
   const watchScheduledPaymentDebitDay = form.watch('scheduledPaymentDebitDay');
+  const watchScheduledPaymentSpecificDate = form.watch('scheduledPaymentSpecificDate');
 
 
   async function onSubmit(values: AssuranceVieFormValues) {
@@ -137,45 +138,52 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
 
     try {
       const clientFullName = `${values.subscriberFirstName} ${values.subscriberLastName}`;
-      const numericInitialPayment = values.initialPaymentAmount === '' ? undefined : Number(values.initialPaymentAmount);
-      const numericScheduledPayment = values.scheduledPaymentAmount === '' ? undefined : Number(values.scheduledPaymentAmount);
+      
+      const delegationDetails: { [key: string]: any } = {};
 
-      const delegationDetails: { [key: string]: any } = {
-        subscriberFirstName: values.subscriberFirstName,
-        subscriberLastName: values.subscriberLastName,
-        hasCoSubscriber: values.hasCoSubscriber,
-        contractName: values.contractName,
-        beneficiaryClause: values.beneficiaryClause,
-        assetAllocationChoice: values.assetAllocationChoice,
-      };
+      // Required fields (already validated by Zod to be present)
+      delegationDetails.subscriberFirstName = values.subscriberFirstName;
+      delegationDetails.subscriberLastName = values.subscriberLastName;
+      delegationDetails.hasCoSubscriber = values.hasCoSubscriber;
+      delegationDetails.contractName = values.contractName;
+      delegationDetails.beneficiaryClause = values.beneficiaryClause;
+      delegationDetails.assetAllocationChoice = values.assetAllocationChoice;
 
       if (values.hasCoSubscriber) {
         // Zod validation ensures these are non-empty strings if hasCoSubscriber is true
-        delegationDetails.coSubscriberFirstName = values.coSubscriberFirstName;
-        delegationDetails.coSubscriberLastName = values.coSubscriberLastName;
+        if (values.coSubscriberLastName) delegationDetails.coSubscriberLastName = values.coSubscriberLastName;
+        if (values.coSubscriberFirstName) delegationDetails.coSubscriberFirstName = values.coSubscriberFirstName;
       }
 
-      if (numericInitialPayment !== undefined) {
-        delegationDetails.initialPaymentAmount = numericInitialPayment;
+      if (values.initialPaymentAmount !== '' && values.initialPaymentAmount !== undefined) {
+          const numericInitialPayment = Number(values.initialPaymentAmount);
+          if(!isNaN(numericInitialPayment)) {
+            delegationDetails.initialPaymentAmount = numericInitialPayment;
+          }
+      }
+
+      if (values.scheduledPaymentAmount !== '' && values.scheduledPaymentAmount !== undefined) {
+          const numericScheduledPayment = Number(values.scheduledPaymentAmount);
+          if(!isNaN(numericScheduledPayment)) {
+            delegationDetails.scheduledPaymentAmount = numericScheduledPayment;
+            // These are only relevant if scheduledPaymentAmount is present and > 0 (as per Zod refine)
+            if (numericScheduledPayment > 0) {
+                if (values.scheduledPaymentDebitDay) { // Required by Zod if scheduledPaymentAmount > 0
+                    delegationDetails.scheduledPaymentDebitDay = values.scheduledPaymentDebitDay;
+                    if (values.scheduledPaymentDebitDay === "Specific" && values.scheduledPaymentSpecificDate) { // scheduledPaymentSpecificDate required by Zod here
+                        delegationDetails.scheduledPaymentSpecificDate = values.scheduledPaymentSpecificDate; // JS Date object
+                    }
+                }
+            }
+          }
       }
       
-      if (numericScheduledPayment !== undefined) { // Can be 0
-        delegationDetails.scheduledPaymentAmount = numericScheduledPayment;
-        // Only add debit day and specific date if scheduled payment is greater than 0
-        if (numericScheduledPayment > 0 && values.scheduledPaymentDebitDay) {
-          delegationDetails.scheduledPaymentDebitDay = values.scheduledPaymentDebitDay;
-          if (values.scheduledPaymentDebitDay === "Specific" && values.scheduledPaymentSpecificDate) {
-            delegationDetails.scheduledPaymentSpecificDate = values.scheduledPaymentSpecificDate;
-          }
-        }
-      }
-
       if (values.beneficiaryClause === "Clause bénéficiaire libre" && values.customBeneficiaryClause && values.customBeneficiaryClause.trim() !== "") {
-        delegationDetails.customBeneficiaryClause = values.customBeneficiaryClause;
+          delegationDetails.customBeneficiaryClause = values.customBeneficiaryClause;
       }
       
       if (values.assetAllocationChoice === "Importer une autre allocation d'actifs" && values.customAssetAllocation && values.customAssetAllocation.trim() !== "") {
-        delegationDetails.customAssetAllocation = values.customAssetAllocation;
+          delegationDetails.customAssetAllocation = values.customAssetAllocation;
       }
 
       const delegationData: Omit<DelegationItem, 'id' | 'createdDate'> & { createdDate: any; lastModifiedDate: any; notes?: string } = {
@@ -192,7 +200,6 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
       if (values.notes && values.notes.trim() !== "") {
         delegationData.notes = values.notes;
       }
-
 
       await addDoc(collection(db, 'delegations'), delegationData);
       toast({ title: 'Délégation "Assurance Vie" Créée', description: `Souscription pour ${clientFullName} enregistrée.` });
@@ -331,7 +338,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
               )}
             />
             
-            {Number(form.watch('scheduledPaymentAmount')) > 0 && (
+            {Number(watchScheduledPaymentAmount) > 0 && (
                <FormField
                 control={form.control}
                 name="scheduledPaymentDebitDay"
@@ -345,9 +352,6 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                           if (value !== "Specific") {
                             form.setValue('scheduledPaymentSpecificDate', undefined, { shouldValidate: true });
                             setIsDatePickerOpen(false); 
-                          } else {
-                            // If "Specific" is chosen directly, open date picker
-                            setIsDatePickerOpen(true);
                           }
                         }}
                         value={scheduledPaymentDebitDayField.value} 
@@ -368,23 +372,33 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                         
                         <FormItem className="flex items-center space-x-3 space-y-0">
                            <FormControl>
-                              <RadioGroupItem value="Specific" id="debitDaySpecificRadio" />
+                              <RadioGroupItem 
+                                value="Specific" 
+                                id="debitDaySpecificRadio" 
+                                checked={scheduledPaymentDebitDayField.value === "Specific"}
+                                onClick={() => { // Ensure radio is checked when its label (popover trigger) is clicked
+                                    if (scheduledPaymentDebitDayField.value !== "Specific") {
+                                       scheduledPaymentDebitDayField.onChange("Specific");
+                                    }
+                                    setIsDatePickerOpen(true);
+                                }}
+                              />
                            </FormControl>
                            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                             <PopoverTrigger asChild>
                                 <Label
-                                htmlFor="debitDaySpecificRadio"
+                                htmlFor="debitDaySpecificRadio" // Associates label with the radio item
                                 className={cn(
                                     "font-normal cursor-pointer flex-grow flex items-center rounded-md border border-input bg-transparent hover:bg-accent hover:text-accent-foreground px-3 py-2 text-sm h-10",
                                     scheduledPaymentDebitDayField.value === "Specific" && "bg-accent text-accent-foreground",
                                     scheduledPaymentDebitDayField.value === "Specific" && !watchScheduledPaymentSpecificDate && "text-muted-foreground"
                                 )}
-                                onClick={() => {
-                                    // If not already "Specific", set it and open picker
+                                onClick={(e) => { // Label click also handles opening picker
                                     if (scheduledPaymentDebitDayField.value !== "Specific") {
-                                    scheduledPaymentDebitDayField.onChange("Specific");
+                                        scheduledPaymentDebitDayField.onChange("Specific");
                                     }
                                     setIsDatePickerOpen(true);
+                                    // e.preventDefault(); // May not be needed if radio onClick handles state
                                 }}
                                 >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -398,8 +412,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                                 align="start"
                                 onInteractOutside={(e) => {
                                     const target = e.target as HTMLElement;
-                                    // Check if the click is on the trigger or inside the popover
-                                    if (target.closest('[data-radix-popover-trigger]') || target.closest('[data-radix-popover-content]')) {
+                                    if (target.closest('[data-radix-popover-trigger]') || target.closest('[data-radix-popover-content]') || target.closest('button[aria-label="Previous month"], button[aria-label="Next month"]')) {
                                         e.preventDefault();
                                     }
                                 }}
@@ -412,7 +425,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                                     scheduledPaymentDebitDayField.onChange("Specific"); 
                                     setIsDatePickerOpen(false);
                                 }}
-                                disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1))}
+                                disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1))} // Disable past dates
                                 initialFocus
                                 />
                             </PopoverContent>
@@ -455,7 +468,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Détail de la clause bénéficiaire libre *</FormLabel>
-                    <FormControl><Textarea placeholder="Décrivez la clause bénéficiaire..." {...field} className="min-h-[100px]" /></FormControl>
+                    <FormControl><Textarea placeholder="Décrivez la clause bénéficiaire..." {...field} className="min-h-[100px]" value={field.value ?? ''} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -490,7 +503,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Détail de l&apos;autre allocation d&apos;actifs *</FormLabel>
-                    <FormControl><Textarea placeholder="Décrivez l'allocation ou fournissez un lien..." {...field} className="min-h-[100px]" /></FormControl>
+                    <FormControl><Textarea placeholder="Décrivez l'allocation ou fournissez un lien..." {...field} className="min-h-[100px]" value={field.value ?? ''}/></FormControl>
                     <FormDescription>
                       La fonctionnalité d&apos;import direct de fichier sera ajoutée ultérieurement. Pour l&apos;instant, veuillez décrire ou coller un lien.
                     </FormDescription>
@@ -505,7 +518,7 @@ export function AssuranceVieForm({ onFormSubmitSuccess, onCancel }: AssuranceVie
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Commentaire</FormLabel>
-                  <FormControl><Textarea placeholder="Partagez toutes les informations que vous jugerez utiles..." className="min-h-[100px]" {...field} /></FormControl>
+                  <FormControl><Textarea placeholder="Partagez toutes les informations que vous jugerez utiles..." className="min-h-[100px]" {...field} value={field.value ?? ''} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
