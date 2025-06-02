@@ -40,8 +40,6 @@ export function DelegationItemButton({ itemName, icon, onClick, category }: Dele
         {icon}
       </div>
       <span className="text-base font-medium text-foreground">{itemName}</span>
-      <span className="text-xs text-muted-foreground">Initiate new {itemName.toLowerCase()}</span>
     </Button>
   );
 }
-
