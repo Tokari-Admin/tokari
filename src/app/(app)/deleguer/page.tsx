@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // Added import
 import { FilePlus, Settings2, ShieldCheck, TrendingUp, Building, GitCompareArrows, ChevronLeft } from 'lucide-react';
 import { DelegationCategoryCard } from '@/components/delegation/delegation-category-card';
 import { DelegationItemButton } from '@/components/delegation/delegation-item-button';
@@ -10,7 +11,7 @@ import { DelegationSubCategories, getCategoryForType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import { AssuranceVieForm } from '@/components/delegation/assurance-vie-form'; // New Import
+import { AssuranceVieForm } from '@/components/delegation/assurance-vie-form';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -40,6 +41,7 @@ const TALLY_DEFAULT_PARAMS = "alignLeft=1&hideTitle=1&transparentBackground=1&dy
 export default function DeleguerPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const router = useRouter(); // Added router instance
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
   const [currentTallyEmbedUrl, setCurrentTallyEmbedUrl] = useState<string | null>(null);
   const [showAssuranceVieNativeForm, setShowAssuranceVieNativeForm] = useState(false);
@@ -91,7 +93,7 @@ export default function DeleguerPage() {
       title: "Opération Enregistrée",
       description: "L'opération Assurance Vie a été enregistrée. Vous pouvez la consulter dans 'Mes Opérations'.",
     });
-    // Optionally navigate or refresh data here
+    router.push('/mes-operations'); // Navigate to Mes Opérations page
   };
 
 
