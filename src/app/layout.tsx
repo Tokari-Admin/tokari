@@ -5,6 +5,7 @@ import Script from 'next/script';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { Toaster } from "@/components/ui/toaster";
+import { ThemeProvider } from "next-themes";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const poppins = Poppins({
@@ -33,10 +34,17 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className={`${inter.variable} ${poppins.variable} font-body antialiased`}>
-        <Providers>
-          {children}
-          <Toaster />
-        </Providers>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Providers>
+            {children}
+            <Toaster />
+          </Providers>
+        </ThemeProvider>
         <Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
       </body>
     </html>

@@ -9,6 +9,7 @@ import { AppSidebar } from '@/components/layout/app-sidebar';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Loader2 } from 'lucide-react';
 import { TallyProfilePopupHandler } from '@/components/auth/tally-profile-popup-handler';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -44,6 +45,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <div className="flex-1">
             {/* Potential breadcrumbs or page title here */}
           </div>
+          <ThemeToggle />
         </header>
         <main className="flex-1 flex flex-col gap-4 p-4 md:gap-8 md:p-8">
           {children}
