@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   try {
     const payload = (await request.json()) as TallyWebhookPayload;
 
-    // Log the entire payload for debugging - REMOVE THIS IN PRODUCTION
+    // Log the entire payload for debugging - REMOVE THIS IN PRODUCTION if sensitive
     console.log('Tally Webhook Payload Received:', JSON.stringify(payload, null, 2));
 
     const fields = payload.data.fields;
@@ -45,46 +45,55 @@ export async function POST(request: NextRequest) {
       return field?.value;
     };
 
+    // These labels MUST match the labels of your fields in Tally,
+    // especially the hidden fields for User ID and Delegation Type.
     const userId = getFieldValueByLabel('User ID') as string | undefined;
     const delegationType = getFieldValueByLabel('Delegation Type') as DelegationType | undefined;
-    const clientName = getFieldValueByLabel('Client Name') as string | undefined; // Assuming 'Client Name' is the label in Tally
-    const notes = getFieldValueByLabel('Notes') as string | undefined; // Assuming 'Notes' is a label in Tally
+    const clientName = getFieldValueByLabel('Client Name') as string | undefined;
+    const notes = getFieldValueByLabel('Notes') as string | undefined;
+    // Example for an optional specific field:
+    // const amount = getFieldValueByLabel('Amount');
+
 
     if (!userId || !delegationType || !clientName) {
-      console.error('Missing required fields from Tally webhook: userId, delegationType, or clientName');
+      console.error('Missing required fields from Tally webhook based on expected labels: "User ID", "Delegation Type", or "Client Name"');
       return NextResponse.json(
-        { message: 'Webhook received, but missing required fields: userId, delegationType, or clientName.' },
+        { message: 'Webhook received, but missing required fields. Check Tally field labels: "User ID", "Delegation Type", "Client Name".' },
         { status: 400 }
       );
     }
 
     const category = getCategoryForType(delegationType);
     if (!category) {
-      console.error(`Invalid delegationType received: ${delegationType}`);
+      console.error(`Invalid delegationType received or no category mapping: ${delegationType}`);
       return NextResponse.json(
-        { message: `Webhook received, but invalid delegationType: ${delegationType}.` },
+        { message: `Webhook received, but invalid delegationType or no category found: ${delegationType}.` },
         { status: 400 }
       );
     }
+
+    const delegationDetails: { [key: string]: any } = {};
+    // Example: Populate 'amount' if an "Amount" field exists and has a value
+    // const amountValue = getFieldValueByLabel('Amount');
+    // if (amountValue !== undefined && !isNaN(parseFloat(amountValue))) {
+    //   delegationDetails.amount = parseFloat(amountValue);
+    // }
+    // Add other specific details you want to extract from Tally into the details object
 
     const newDelegation: Omit<DelegationItem, 'id' | 'createdDate'> & { createdDate: any; lastModifiedDate: any } = {
       userId: userId,
       type: delegationType,
       category: category,
       clientName: clientName,
-      status: 'En attente' as DelegationStatus, // Default status
+      status: 'En attente' as DelegationStatus, // Default status for new submissions
       notes: notes || '',
-      details: {
-        // You might want to extract more specific details from Tally if available
-        // For example, if there's an 'Amount' field:
-        // amount: parseFloat(getFieldValueByLabel('Amount')) || undefined,
-      },
+      details: delegationDetails, // Populate with any specific details extracted
       createdDate: serverTimestamp(),
       lastModifiedDate: serverTimestamp(),
     };
 
     const docRef = await addDoc(collection(db, 'delegations'), newDelegation);
-    console.log('Delegation created with ID:', docRef.id);
+    console.log('Delegation created via Tally webhook with ID:', docRef.id);
 
     return NextResponse.json({ message: 'Webhook processed successfully', delegationId: docRef.id }, { status: 200 });
 
@@ -93,10 +102,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Error processing webhook', error: error.message }, { status: 500 });
   }
 }
-
-// Optional: Basic security check (e.g., a simple secret key)
-// For production, you should implement more robust webhook signature verification if Tally supports it.
-// const TALLY_WEBHOOK_SECRET = process.env.TALLY_WEBHOOK_SECRET;
-// if (TALLY_WEBHOOK_SECRET && request.headers.get('X-Tally-Signature') !== TALLY_WEBHOOK_SECRET) {
-//   return NextResponse.json({ message: 'Invalid signature' }, { status: 401 });
-// }
