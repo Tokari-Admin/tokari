@@ -25,24 +25,24 @@ export interface DelegationItem {
     initialPaymentAmount?: number;
     scheduledPaymentAmount?: number;
     scheduledPaymentDebitDay?: "05" | "15" | "25" | "Specific";
-    scheduledPaymentSpecificDate?: Date; 
+    scheduledPaymentSpecificDate?: Date;
     beneficiaryClause?: "Clause bénéficiaire générale" | "Clause bénéficiaire libre";
-    customBeneficiaryClause?: string; 
+    customBeneficiaryClause?: string;
     assetAllocationChoice?: "Utiliser l'allocation d'actifs que j'ai déjà importé" | "Importer une autre allocation d'actifs";
-    customAssetAllocation?: string; 
+    customAssetAllocation?: string;
 
-    // Fields for Autre Tache form
+    // Fields for Autre Tache form (now handled by Tally, but structure kept for webhook data)
     taskTitle?: string;
     taskDescription?: string;
     dueDate?: Date; // Stored as Date, Firestore converts to Timestamp
 
     // Original generic fields - can be reused or deprecated based on specific form needs
-    amount?: number; 
+    amount?: number;
     policyNumber?: string;
     documentUrl?: string;
-    productType?: string; 
-    riskProfile?: string; 
-    [key: string]: any; 
+    productType?: string;
+    riskProfile?: string;
+    [key: string]: any;
   };
 }
 
@@ -63,13 +63,14 @@ export const DelegationSubCategories = {
     "SCPI Nue Propriété",
   ],
   "Actes de Gestion": ["Arbitrage"],
-  "Autres Tâches": [], // Empty array, will be handled specially in UI to open a native form
+  "Autres Tâches": ["Tâche Ad Hoc"], // Updated to include "Tâche Ad Hoc"
 } as const;
 
 export type SouscriptionType = typeof DelegationSubCategories.Souscription[number];
 export type ActesDeGestionType = typeof DelegationSubCategories['Actes de Gestion'][number];
-// For "Autres Tâches", the type will be a fixed string like "Tâche Ad Hoc" defined in the form logic.
-export type DelegationType = SouscriptionType | ActesDeGestionType | "Tâche Ad Hoc";
+export type AutresTachesType = typeof DelegationSubCategories['Autres Tâches'][number]; // Added this type
+
+export type DelegationType = SouscriptionType | ActesDeGestionType | AutresTachesType;
 
 
 export function getCategoryForType(type: DelegationType): DelegationCategory | undefined {
@@ -79,8 +80,9 @@ export function getCategoryForType(type: DelegationType): DelegationCategory | u
   if ((DelegationSubCategories['Actes de Gestion'] as readonly string[]).includes(type)) {
     return 'Actes de Gestion';
   }
-  if (type === "Tâche Ad Hoc") { // Explicitly check for the ad-hoc task type
+  if ((DelegationSubCategories['Autres Tâches'] as readonly string[]).includes(type)) { // Updated to check the array
     return 'Autres Tâches';
   }
   return undefined;
 }
+

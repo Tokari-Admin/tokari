@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FilePlus, Settings2, ShieldCheck, TrendingUp, Building, GitCompareArrows, ChevronLeft, ClipboardList, PlusCircle } from 'lucide-react';
 import { DelegationCategoryCard } from '@/components/delegation/delegation-category-card';
@@ -11,7 +11,6 @@ import { DelegationSubCategories, getCategoryForType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import { AutreTacheForm } from '@/components/delegation/autre-tache-form'; // Import the new form
 
 const categoryIcons = {
   Souscription: <FilePlus className="h-8 w-8" />,
@@ -25,7 +24,7 @@ const itemIcons: Record<DelegationType, React.ReactNode> = {
   "SCPI Pleine Propriété": <Building className="h-6 w-6" />,
   "SCPI Nue Propriété": <Building className="h-6 w-6" />,
   "Arbitrage": <GitCompareArrows className="h-6 w-6" />,
-  "Tâche Ad Hoc": <PlusCircle className="h-6 w-6" /> // Icon for consistency, though not directly used for button
+  "Tâche Ad Hoc": <PlusCircle className="h-6 w-6" />
 };
 
 const TALLY_URLS: Partial<Record<DelegationType, string>> = {
@@ -34,6 +33,7 @@ const TALLY_URLS: Partial<Record<DelegationType, string>> = {
   "SCPI Nue Propriété": "https://tally.so/embed/wAjXpD",
   "SCPI Pleine Propriété": "https://tally.so/embed/nrkZ5R",
   "Arbitrage": "https://tally.so/embed/mOoN7R",
+  "Tâche Ad Hoc": "https://tally.so/embed/w4DR5X", // Added Tally URL for Ad Hoc Task
 };
 
 const TALLY_DEFAULT_PARAMS = "alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
@@ -43,10 +43,10 @@ export default function DeleguerPage() {
   const router = useRouter();
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
   const [currentTallyEmbedUrl, setCurrentTallyEmbedUrl] = useState<string | null>(null);
-  const [showAutreTacheForm, setShowAutreTacheForm] = useState(false);
+  // Removed showAutreTacheForm state
 
   const handleItemClick = (itemType: DelegationType) => {
-    setCurrentTallyDelegationType(itemType); // Keep this for Tally forms
+    setCurrentTallyDelegationType(itemType);
     const baseEmbedUrl = TALLY_URLS[itemType];
 
     if (baseEmbedUrl && user) {
@@ -60,46 +60,26 @@ export default function DeleguerPage() {
        setCurrentTallyEmbedUrl(`${baseEmbedUrl}?${queryParams.toString()}`);
        console.warn("User not available for Tally URL, userId not included.");
     } else {
-      // This block will be hit if itemType is not in TALLY_URLS (e.g., "Tâche Ad Hoc")
-      // Or if the Tally URL is simply missing for a type.
-      // For "Tâche Ad Hoc", this state won't be primarily used, as showAutreTacheForm handles it.
       const placeholderHtml = `
         <body style='font-family:sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;height:80vh;margin:0;padding:20px;text-align:center;color:%234b5563;background-color:%23f9fafb;border-radius:8px;'>
           <h2 style='color:%231f2937;margin-bottom:8px;'>Formulaire pour ${itemType}</h2>
           <p style="font-size:0.9em;max-width:400px;color:%236b7280;">
-            Le formulaire Tally sp&eacute;cifique pour ce type d&apos;op&eacute;ration (<strong>${itemType}</strong>) n&apos;est pas encore configur&eacute; ou ce type utilise un formulaire natif.
+            Le formulaire Tally sp&eacute;cifique pour ce type d&apos;op&eacute;ration (<strong>${itemType}</strong>) n&apos;est pas encore configur&eacute;.
           </p>
         </body>`;
       setCurrentTallyEmbedUrl(`data:text/html,${encodeURIComponent(placeholderHtml)}`);
     }
   };
   
-  const handleNativeFormSuccess = () => {
-    resetSelection();
-    router.push('/mes-operations');
-  };
+  // Removed handleNativeFormSuccess as AutreTacheForm is removed
 
   const resetSelection = () => {
     setCurrentTallyDelegationType(null);
     setCurrentTallyEmbedUrl(null);
-    setShowAutreTacheForm(false);
+    // Removed setShowAutreTacheForm(false);
   };
 
-  if (showAutreTacheForm) {
-    return (
-      <div className="container mx-auto py-8 px-4 md:px-0">
-        <Button
-          variant="outline"
-          onClick={resetSelection}
-          className="mb-6 flex items-center"
-        >
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Retour à la sélection
-        </Button>
-        <AutreTacheForm onFormSubmitSuccess={handleNativeFormSuccess} onCancel={resetSelection} />
-      </div>
-    );
-  }
+  // Removed the block for if (showAutreTacheForm) { ... }
 
   if (currentTallyDelegationType && currentTallyEmbedUrl) {
     return (
@@ -152,33 +132,12 @@ export default function DeleguerPage() {
 
       <div className="space-y-8">
         {(Object.keys(DelegationSubCategories) as DelegationCategory[]).map((category, index) => {
-          if (category === "Autres Tâches") {
-            return (
-              <DelegationCategoryCard
-                key={category}
-                categoryName={category}
-                icon={categoryIcons[category]}
-                defaultOpen={DelegationSubCategories[category].length > 0 || index === 0} // Open if it has items, or is first
-              >
-                <div className="col-span-1 sm:col-span-2 lg:col-span-3 flex justify-center p-4">
-                  <Button
-                    onClick={() => setShowAutreTacheForm(true)}
-                    className="w-full max-w-md"
-                    size="lg"
-                  >
-                    <PlusCircle className="mr-2 h-5 w-5" />
-                    Créer une tâche personnalisée
-                  </Button>
-                </div>
-              </DelegationCategoryCard>
-            );
-          }
           return (
             <DelegationCategoryCard
               key={category}
               categoryName={category}
               icon={categoryIcons[category]}
-              defaultOpen={index === 0}
+              defaultOpen={index === 0} // Open first category by default
             >
               {DelegationSubCategories[category].map((item) => (
                 <DelegationItemButton
