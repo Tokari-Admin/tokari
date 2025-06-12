@@ -33,7 +33,7 @@ const TALLY_URLS: Partial<Record<DelegationType, string>> = {
   "SCPI Nue Propriété": "https://tally.so/embed/wAjXpD",
   "SCPI Pleine Propriété": "https://tally.so/embed/nrkZ5R",
   "Arbitrage": "https://tally.so/embed/mOoN7R",
-  "Tâche Ad Hoc": "https://tally.so/embed/w4DR5X", // Added Tally URL for Ad Hoc Task
+  "Tâche Ad Hoc": "https://tally.so/embed/w4DR5X",
 };
 
 const TALLY_DEFAULT_PARAMS = "alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1";
@@ -43,7 +43,6 @@ export default function DeleguerPage() {
   const router = useRouter();
   const [currentTallyDelegationType, setCurrentTallyDelegationType] = useState<DelegationType | null>(null);
   const [currentTallyEmbedUrl, setCurrentTallyEmbedUrl] = useState<string | null>(null);
-  // Removed showAutreTacheForm state
 
   const handleItemClick = (itemType: DelegationType) => {
     setCurrentTallyDelegationType(itemType);
@@ -71,15 +70,10 @@ export default function DeleguerPage() {
     }
   };
   
-  // Removed handleNativeFormSuccess as AutreTacheForm is removed
-
   const resetSelection = () => {
     setCurrentTallyDelegationType(null);
     setCurrentTallyEmbedUrl(null);
-    // Removed setShowAutreTacheForm(false);
   };
-
-  // Removed the block for if (showAutreTacheForm) { ... }
 
   if (currentTallyDelegationType && currentTallyEmbedUrl) {
     return (
@@ -137,7 +131,7 @@ export default function DeleguerPage() {
               key={category}
               categoryName={category}
               icon={categoryIcons[category]}
-              defaultOpen={index === 0} // Open first category by default
+              defaultOpen={index === 0}
             >
               {DelegationSubCategories[category].map((item) => (
                 <DelegationItemButton
