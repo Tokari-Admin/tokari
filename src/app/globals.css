@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -38,7 +39,7 @@ body {
     --input: 220 40% 97%; /* Very light input background, slightly off-white */
     --ring: 217 91% 60%; /* Primary color for focus rings */
 
-    --radius: 0.625rem; /* Slightly larger radius (10px) for a softer, modern feel */
+    --radius: 0.5rem; /* Adjusted for a slightly sharper look based on screenshot (8px) */
 
     /* Sidebar specific variables - aiming for a clean, integrated look */
     --sidebar-background: 0 0% 100%; /* White sidebar, clean separation */
@@ -58,51 +59,52 @@ body {
   }
 
   .dark {
-    /* Modern Dark Theme */
-    --background: 220 20% 10%; /* Dark desaturated blue */
-    --foreground: 220 20% 95%; /* Light gray */
+    /* CryptoGraphy Inspired Dark Theme */
+    --background: 220 15% 12%; /* Very dark gray, almost black */
+    --foreground: 220 10% 85%; /* Light gray/off-white text */
 
-    --card: 220 20% 13%; /* Slightly lighter than background */
-    --card-foreground: 220 20% 95%;
+    --card: 220 15% 18%; /* Dark gray cards, lighter than main background */
+    --card-foreground: 220 10% 85%;
 
-    --popover: 220 20% 13%;
-    --popover-foreground: 220 20% 95%;
+    --popover: 220 15% 18%; /* Similar to cards */
+    --popover-foreground: 220 10% 85%;
 
-    --primary: 217 91% 60%; /* Vibrant blue, same as light */
-    --primary-foreground: 0 0% 100%;
+    --primary: 220 15% 25%; /* Muted dark gray for buttons like "Make Your Coin" */
+    --primary-foreground: 220 10% 85%; /* Light text on these buttons */
 
-    --secondary: 220 20% 20%; /* Darker gray for secondary */
-    --secondary-foreground: 220 20% 80%;
+    --secondary: 220 15% 22%; /* For less important elements */
+    --secondary-foreground: 220 10% 70%;
 
-    --muted: 220 20% 18%;
-    --muted-foreground: 220 20% 65%;
+    --muted: 220 15% 15%; /* Subtle backgrounds or very dim text */
+    --muted-foreground: 220 10% 55%;
 
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
-    --accent-light: 217 91% 25%; /* Darker hover for accent */
+    --accent: 220 10% 75%; /* Neutral light gray for focus rings, general subtle accents */
+    --accent-foreground: 220 15% 15%; /* Dark text on light accent */
+    --accent-light: 220 15% 25%; /* A slightly lighter shade for subtle hover on dark elements */
 
-    --destructive: 0 60% 50%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 63% 50%; /* Standard red for errors */
+    --destructive-foreground: 0 0% 98%; /* Light text on destructive elements */
 
-    --border: 220 20% 25%;
-    --input: 220 20% 17%;
-    --ring: 217 91% 60%;
+    --border: 220 15% 25%; /* Subtle borders, slightly lighter than card/input */
+    --input: 220 15% 18%; /* Dark gray for input fields, similar to cards */
+    --ring: 220 10% 75%; /* Accent color for focus rings */
 
-    /* Sidebar specific variables for dark theme */
-    --sidebar-background: 220 20% 9%; /* Very dark */
-    --sidebar-foreground: 220 20% 95%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 15%; /* Active/hover background for sidebar items */
-    --sidebar-accent-foreground: 217 91% 70%; /* Lighter primary for text on active/hover */
-    --sidebar-border: 220 20% 20%;
-    --sidebar-ring: 217 91% 60%;
+    /* Sidebar specific variables for CryptoGraphy dark theme */
+    --sidebar-background: 220 15% 16%; /* Slightly different dark gray for sidebar bg */
+    --sidebar-foreground: 220 10% 80%; /* Text color for sidebar items */
+    --sidebar-primary: 220 10% 85%; /* Color for icons/text in sidebar if needed to stand out */
+    --sidebar-primary-foreground: 220 15% 15%;
+    --sidebar-accent: 220 15% 28%; /* Background for selected/active sidebar item (lighter gray) */
+    --sidebar-accent-foreground: 220 20% 95%; /* Bright white text for selected/active sidebar item */
+    --sidebar-border: 220 15% 25%; /* Border for sidebar if needed */
+    --sidebar-ring: 220 10% 75%;
 
-    --chart-1: 217 91% 70%;
-    --chart-2: 190 70% 65%;
-    --chart-3: 260 65% 75%;
-    --chart-4: 30 80% 70%;
-    --chart-5: 160 60% 55%;
+    /* Chart colors can be adjusted if the screenshot implies specific chart palette */
+    --chart-1: 45 90% 55%; /* Gold/Yellowish to match icon hints if needed */
+    --chart-2: 160 60% 55%; /* Greenish */
+    --chart-3: 210 80% 65%; /* Bluish */
+    --chart-4: 0 70% 60%;   /* Reddish */
+    --chart-5: 270 70% 70%; /* Purplish */
   }
 }
 
