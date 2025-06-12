@@ -10,7 +10,7 @@ import {
   LogOut,
   UserCog,
   Home,
-  KanbanSquare, // Added for Task Board
+  // KanbanSquare, // Removed for Task Board
 } from "lucide-react";
 import {
   Sidebar,
@@ -42,7 +42,7 @@ import { Skeleton } from "../ui/skeleton";
 const navItems = [
   { href: "/deleguer", icon: Briefcase, label: "Déléguer" },
   { href: "/mes-operations", icon: History, label: "Mes Opérations" },
-  { href: "/task-board", icon: KanbanSquare, label: "Tableau de Tâches" }, // New Task Board link
+  // { href: "/task-board", icon: KanbanSquare, label: "Tableau de Tâches" }, // Removed Task Board link
 ];
 
 export function AppSidebar() {
@@ -79,7 +79,7 @@ export function AppSidebar() {
             <>
               <SidebarMenuSkeleton showIcon />
               <SidebarMenuSkeleton showIcon />
-              <SidebarMenuSkeleton showIcon />
+              {/* <SidebarMenuSkeleton showIcon /> */}
             </>
           )}
           {!loading && navItems.map((item) => (
