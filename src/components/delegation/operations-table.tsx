@@ -1,10 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { collection, query, where, onSnapshot, orderBy as firestoreOrderBy, doc, deleteDoc } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
-import type { DelegationItem, DelegationStatus, DelegationType } from '@/types';
-import { useAuth } from '@/hooks/use-auth';
 import {
   Table,
   TableBody,
@@ -41,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
 
 export function OperationsTable() {
   const { user } = useAuth();
@@ -66,33 +63,9 @@ export function OperationsTable() {
     }
 
     setIsLoading(true);
-    const q = query(
-      collection(db, 'delegations'),
-      where('userId', '==', user.uid),
-      firestoreOrderBy('createdDate', 'desc') // Default server-side sort
-    );
+    // Default server-side sort
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const items: DelegationItem[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        items.push({ 
-            id: doc.id, 
-            ...data,
-            // Ensure createdDate is a number (timestamp) for client-side sorting
-            createdDate: data.createdDate?.toMillis ? data.createdDate.toMillis() : (data.createdDate || 0),
-            lastModifiedDate: data.lastModifiedDate?.toMillis ? data.lastModifiedDate.toMillis() : (data.lastModifiedDate || 0),
-         } as DelegationItem);
-      });
-      setDelegations(items);
-      setIsLoading(false);
-    }, (error) => {
-        console.error("Error fetching delegations: ", error);
-        toast({variant: "destructive", title: "Error", description: "Could not fetch operations."});
-        setIsLoading(false);
-    });
-
-    return () => unsubscribe();
+    setIsLoading(false);
   }, [user, toast]);
 
   const handleSort = (key: keyof DelegationItem) => {
@@ -147,7 +120,7 @@ export function OperationsTable() {
   const handleDelete = async () => {
     if (!deletingDelegationId) return;
     try {
-      await deleteDoc(doc(db, 'delegations', deletingDelegationId));
+      // await deleteDoc(doc(db, 'delegations', deletingDelegationId));
       toast({ title: 'Delegation Deleted', description: 'The operation has been deleted.' });
       setDeletingDelegationId(null); // Close dialog
     } catch (error) {

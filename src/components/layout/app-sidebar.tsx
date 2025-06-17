@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -35,8 +34,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
-import { auth } from "@/lib/firebase";
-import { signOut } from "firebase/auth";
 import { Skeleton } from "../ui/skeleton";
 
 const navItems = [
@@ -51,10 +48,8 @@ export function AppSidebar() {
   const router = useRouter();
   const { state, isMobile } = useSidebar();
 
-
   const handleLogout = async () => {
     try {
-      await signOut(auth);
       router.push("/login");
     } catch (error) {
       console.error("Logout error:", error);

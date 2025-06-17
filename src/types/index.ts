@@ -1,17 +1,12 @@
-
-import type { Timestamp } from 'firebase/firestore';
-
 export type DelegationStatus = 'En attente' | 'En cours' | 'Terminé';
 export type DelegationCategory = 'Souscription' | 'Actes de Gestion' | 'Autres Tâches';
 
 export interface DelegationItem {
   id: string;
-  userId: string; // Wealth manager's Firebase UID
   type: string; // e.g., "Assurance Vie", "Tâche Ad Hoc"
   category: DelegationCategory;
   clientName: string; // Primary subscriber's full name or client for ad-hoc task
   status: DelegationStatus;
-  createdDate: number; // Store as Firestore Timestamp or epoch milliseconds
   lastModifiedDate?: number;
   notes?: string; // General comments from the form
   details?: {
@@ -34,7 +29,6 @@ export interface DelegationItem {
     // Fields for Autre Tache form (now handled by Tally, but structure kept for webhook data)
     taskTitle?: string;
     taskDescription?: string;
-    dueDate?: Date; // Stored as Date, Firestore converts to Timestamp
 
     // Original generic fields - can be reused or deprecated based on specific form needs
     amount?: number;
@@ -52,7 +46,7 @@ export interface UserProfile {
   displayName: string | null;
   photoURL?: string | null;
   // Add any other app-specific user fields
-  createdAt?: string | Timestamp;
+  createdAt?: string;
 }
 
 export const DelegationSubCategories = {

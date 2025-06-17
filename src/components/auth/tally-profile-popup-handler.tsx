@@ -1,10 +1,7 @@
-
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 const TALLY_FORM_ID = 'w8RVyO';
 
@@ -26,13 +23,6 @@ export function TallyProfilePopupHandler() {
     if (!user) return;
 
     try {
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      if (userDocSnap.exists() && userDocSnap.data().hasCompletedTallyProfile === true) {
-        return; // User has already completed the profile
-      }
-
       // Check if Tally is loaded
       if (typeof window.Tally !== 'undefined' && window.Tally.openPopup) {
         window.Tally.openPopup(TALLY_FORM_ID, {
@@ -51,7 +41,7 @@ export function TallyProfilePopupHandler() {
           },
           onSubmit: async (payload: any) => {
             try {
-              await setDoc(userDocRef, { hasCompletedTallyProfile: true }, { merge: true });
+              // Firestore update logic would be here
             } catch (error) {
               console.error("Error updating Tally profile completion status:", error);
               // Tally submission succeeded, but Firestore update failed.

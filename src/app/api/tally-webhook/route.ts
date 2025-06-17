@@ -1,7 +1,4 @@
-
 import { NextResponse, type NextRequest } from 'next/server';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { getCategoryForType } from '@/types/index';
 import type { DelegationItem, DelegationStatus, DelegationType, DelegationCategory } from '@/types/index';
 

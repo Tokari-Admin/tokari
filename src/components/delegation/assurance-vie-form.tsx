@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,8 +21,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2, CalendarIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import type { DelegationCategory, DelegationItem, DelegationStatus } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';

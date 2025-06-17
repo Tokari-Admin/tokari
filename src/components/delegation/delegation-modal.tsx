@@ -33,8 +33,6 @@ import type { DelegationCategory, DelegationItem, DelegationStatus, DelegationTy
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { Timestamp, addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
