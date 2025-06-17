@@ -1,122 +1,85 @@
-
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { auth, db } from '@/lib/firebase';
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
-
-const formSchema = z.object({
-  displayName: z.string().min(2, { message: 'Display name must be at least 2 characters.'}),
-  email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-});
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export function SignupForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      displayName: '',
-      email: '',
-      password: '',
-    },
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      await updateProfile(userCredential.user, { displayName: values.displayName });
-      
-      await setDoc(doc(db, "users", userCredential.user.uid), {
-        uid: userCredential.user.uid,
-        email: values.email,
-        displayName: values.displayName,
-        createdAt: new Date().toISOString(),
-        hasCompletedTallyProfile: false, // Initialize Tally profile completion status
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
-      toast({ title: 'Signup Successful', description: 'Your account has been created.' });
-      router.push('/deleguer'); // Navigate to a page where AppLayout will pick up the new user
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Signup Failed',
-        description: error.message || 'An unexpected error occurred. Please try again.',
-      });
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        router.push('/auth/verify-email');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during signup');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 rounded-lg border bg-card p-6 shadow-sm sm:p-8">
-        <FormField
-          control={form.control}
-          name="displayName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Display Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Your Name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium">
+          Email
+        </label>
+        <input
+          type="email"
+          id="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+          required
+          disabled={loading}
         />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="your@email.com" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+      </div>
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium">
+          Password
+        </label>
+        <input
+          type="password"
+          id="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+          required
+          disabled={loading}
+          minLength={6}
         />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Sign Up
-        </Button>
-      </form>
-    </Form>
+      </div>
+      {error && (
+        <div className="text-red-500 text-sm">{error}</div>
+      )}
+      <button
+        type="submit"
+        className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+        disabled={loading}
+      >
+        {loading ? 'Creating account...' : 'Sign Up'}
+      </button>
+    </form>
   );
 }
